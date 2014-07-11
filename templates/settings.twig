@@ -1,0 +1,24 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.selectField({
+    label: "Linked Section"|t,
+    instructions: "What is the section you want to link in this relationship?"|t,
+    id: 'source',
+    name: 'source[value]',
+    options: elements,
+    value: source.value
+})}}
+
+{{ forms.hidden({
+    name: 'source[type]',
+    value: 'section'
+})}}
+
+{{ forms.selectField({
+    label: "Associated Field"|t,
+    instructions: "This is the field you are using to create the initial association. This has to be created first."|t,
+    id: 'singleField',
+    name: 'singleField',
+    options: fields,
+    value: singleField
+})}}

@@ -1,0 +1,32 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.hidden({
+    name: name ~ '[singleField]',
+    value: singleField,
+}) }}
+
+{{ forms.hidden({
+    name: name ~ 'nonSelectable',
+    id: name ~ 'nonSelectable',
+    value: nonSelectable,
+}) }}
+
+<div class="input">
+    <div class="elementselect">
+        <div class="elements">
+            <div class="mTm{{ name }}">
+                {% for cur in current %}
+                    <div class="element removable unselectable" id="{{ name }}-manyToMany-{{ cur.id }}">
+                        <input type="hidden" name="{{ name }}[add][]" value="{{ cur.id }}">
+                        <a class="delete icon manyToManyDelete" data-nameSpace="{{ nameSpace }}" data-name="{{ name }}"  data-remove="{{ cur.id }}" title="Remove"></a>
+                        <div class="label">
+                            <span class="title">{{ cur.title }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="btn add icon dashed addManytoMany" data-name="{{ name }}" data-nameSpace="{{ nameSpace }}" data-section="{{ section }}" data-target="mTm{{ name }}" tabindex="0">Add an entry</div>
+        </div>
+    </div>
+</div>
+<div id="{{ name }}-toDelete"></div>
