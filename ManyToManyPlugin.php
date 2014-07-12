@@ -3,6 +3,15 @@ namespace Craft;
 
 class ManyToManyPlugin extends BasePlugin
 {
+    
+    public function init()
+    {
+        parent::init();
+        if (craft()->request->isCpRequest()) {
+            craft()->templates->includeJsResource('manytomany/js/hide-input.js');
+        }
+    }
+
     public function getName()
     {
         return 'Many to Many';
