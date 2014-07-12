@@ -1,7 +1,7 @@
 #Many to Many#
 
 ##Description##
-Many to Many is a [CraftCMS](www.buildwithcraft.com) plugin developed by [Page 8](page-8.com). This plugin allows you to manage relationships in Craft from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
+Many to Many is a [CraftCMS](http://www.buildwithcraft.com) plugin developed by [Page 8](http://page-8.com). This plugin allows you to manage relationships in Craft from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
 
 ##Installation##
 1. Download the plugin and make sure the parent folder is named `manytomany`
@@ -50,7 +50,7 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 3. Other stuff I assume.
 
 ##Feedback?##
-Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](page-8.com)
+Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](http://page-8.com)
 
 ##Version History##
 * 0.1 - Initial Release
