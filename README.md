@@ -47,7 +47,8 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 ##To Do##
 1. Allow the field to work across all (or at least more) Element Types. Currently only supports Entries
 2. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type)
-3. Other stuff I assume.
+3. Fix a bug that doesn't allow it to work from the modal tab
+4. Other stuff I assume.
 
 ##Feedback?##
 Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](http://page-8.com)
