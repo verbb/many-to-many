@@ -41,6 +41,11 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
         
         // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
+        
+        if (!is_object($this->element)) {
+            return 'For this version of the plugin, you can only use this field with Entries.';
+        }
+
         $elementType = $this->element->elementType;
         if ($elementType != 'Entry') {
             return 'For this version of the plugin, you can only use this field with Entries.';
