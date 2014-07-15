@@ -32,23 +32,28 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
         // Setttings
         $source = $this->getSettings()->source;
         if (empty($source)) {
-            return 'To use this plugin you need to set a source.';
+            return 'To use the Many to Many plugin you need to set a source.';
         }
         $singleField = $this->getSettings()->singleField;
         if (empty($singleField)) {
-            return 'To use this plugin you need associate it with a related field.';
+            return 'To use the Many to Many plugin you need associate it with a related field.';
+        }
+
+        $singleFieldModel = craft()->fields->getFieldById($singleField);
+        if ($singleFieldModel->translatable) {
+            return 'The Many to Many plugin does not currently work with localized content.';
         }
         
         // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
         
         if (!is_object($this->element)) {
-            return 'For this version of the plugin, you can only use this field with Entries.';
+            return 'For this version of the Many to Many plugin, you can only use this field with Entries.';
         }
 
         $elementType = $this->element->elementType;
         if ($elementType != 'Entry') {
-            return 'For this version of the plugin, you can only use this field with Entries.';
+            return 'For this version of the Many to Many plugin, you can only use this field with Entries.';
         }
         $currentSection = $this->element->sectionId;
         $relatedSection = craft()->sections->getSectionById($source['value']);
