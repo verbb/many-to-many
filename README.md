@@ -55,3 +55,7 @@ Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit u
 
 ##Version History##
 * 0.1 - Initial Release
+
+###Notes###
+* Currently doesn't support locales
+* As always, use at your own risk
