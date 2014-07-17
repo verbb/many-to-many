@@ -14,7 +14,7 @@ class ManyToManyPlugin extends BasePlugin
 
     public function getName()
     {
-        return 'Many to Many';
+        return Craft::t('Many to Many');
     }
 
     public function getVersion()

@@ -36,11 +36,11 @@ class ManyToManyService extends BaseApplicationComponent
     public function saveRelationship(BaseFieldType $fieldType)
     {
         
-        // Delete all the entry caches
-        craft()->templateCache->deleteCachesByElementType('Entry');
-
         // Set the element ID of this element
         $targetId = $fieldType->element->id;
+
+        // Delete cache related to this element ID
+        craft()->templateCache->deleteCachesByElementId($targetId);
 
         // Get the post values for this field
         $handle      = $fieldType->model->handle;
