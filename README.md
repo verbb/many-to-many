@@ -60,3 +60,6 @@ Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit u
 ###Notes###
 * Currently doesn't support locales
 * As always, use at your own risk
+
+###License###
+This work is licenced under the MIT license.
