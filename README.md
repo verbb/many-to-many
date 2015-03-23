@@ -54,6 +54,7 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](http://page-8.com)
 
 ##Version History##
+* 0.1.2 - Added translatable text
 * 0.1.1 - Optimized the cache control. Instead of clearing all Entry types from the cache, just clears records related to the changed element
 * 0.1.0 - Initial Release
 

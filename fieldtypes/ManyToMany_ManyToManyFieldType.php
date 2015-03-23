@@ -20,7 +20,7 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
 
     /**
      * getInputHtml
-     * 
+     *
      * @param  [type] $name
      * @param  [type] $value
      * @return [type]
@@ -32,28 +32,28 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
         // Setttings
         $source = $this->getSettings()->source;
         if (empty($source)) {
-            return 'To use the ' . $this->getName() . ' plugin you need to set a source.';
+            return Craft::t('To use the ' . $this->getName() . ' plugin you need to set a source.');
         }
         $singleField = $this->getSettings()->singleField;
         if (empty($singleField)) {
-            return 'To use the ' . $this->getName() . ' plugin you need associate it with a related field.';
+            return Craft::t('To use the ' . $this->getName() . ' plugin you need associate it with a related field.');
         }
 
         $singleFieldModel = craft()->fields->getFieldById($singleField);
         if ($singleFieldModel->translatable) {
-            return 'The ' . $this->getName() . ' plugin does not currently work with localized content.';
+            return Craft::t('The ' . $this->getName() . ' plugin does not currently work with localized content.');
         }
-        
+
         // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
-        
+
         if (!is_object($this->element)) {
-            return 'For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.';
+            return Craft::t('For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.');
         }
 
         $elementType = $this->element->elementType;
         if ($elementType != 'Entry') {
-            return 'For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.';
+            return Craft::t('For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.');
         }
         $currentSection = $this->element->sectionId;
         $relatedSection = craft()->sections->getSectionById($source['value']);
@@ -106,10 +106,10 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
      */
     public function getSettingsHtml()
     {
-        
+
         $allSections = craft()->sections->getAllSections();
         $allFields   = craft()->fields->getAllFields();
-        
+
         // Group the Sections into an array
         $elements = array();
         foreach($allSections as $element)
@@ -133,7 +133,7 @@ class ManyToMany_ManyToManyFieldType extends BaseFieldType
 
         // Get the associated Field Type
         $singleField = $this->getSettings()->singleField;
-        
+
         return craft()->templates->render(
             'manytomany/settings', array(
                 'source'      => $source,
