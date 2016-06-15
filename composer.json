@@ -1,14 +1,14 @@
 {
-    "name": "page-8/craft-manytomany'",
-    "description": "A Field Type plugin for CraftCMS that allows the management of relationships from both sides",
-    "authors": [
-		{
-			"name": "Page 8",
-			"homepage": "http://page-8.com/"
-		}
-	],
-    "type": "craft-plugin",
-    "require": {
-        "composer/installers": "~1.0"
+  "name": "page-8/craft-manytomany",
+  "description": "A Field Type plugin for CraftCMS that allows the management of relationships from both sides",
+  "authors": [
+    {
+      "name": "Page 8",
+      "homepage": "http://page-8.com/"
     }
+  ],
+  "type": "craft-plugin",
+  "require": {
+    "composer/installers": "~1.0"
+  }
 }
