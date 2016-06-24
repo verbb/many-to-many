@@ -1,8 +1,8 @@
 function openModal(target, selectedSection, name, nameSpace) {
-    
+
     var nonSelectable = $('#' + nameSpace + '-' + name + 'nonSelectable').val();
     nonSelectable     = JSON.parse("[" + nonSelectable + "]");
-    
+
     Craft.createElementSelectorModal('Entry', {
         resizable:          true,
         storageKey:         'mTm' + target,
@@ -21,7 +21,7 @@ function openModal(target, selectedSection, name, nameSpace) {
                     // Add this item to the disabled list
                     nonSelectable.push(entry.id);
                     $('#' + nameSpace + '-' + name + 'nonSelectable').val(nonSelectable);
-                    
+
                     // See if this entry has been previously deleted, and if so, add it back.
                     var wasDeleted = $('#mTm-toDelete-' + entry.id);
                     if (wasDeleted.length) {
@@ -50,14 +50,14 @@ $( document ).ready(function() {
         var section       = $(this).attr('data-section');
         var nameSpace     = $(this).attr('data-nameSpace');
         var name          = $(this).attr('data-name');
-        
+
         target = target.replace(nameSpace + '-', '');
         openModal(target, section, name, nameSpace);
     });
 
     // Remove the entry
-    $('.elements').on('click', 'a.manyToManyDelete', function() {  
-        
+    $('.elements').on('click', 'a.manyToManyDelete', function() {
+
         // Setup Variables
         var toDelete  = $(this).attr('data-remove');
         var parentId  = $(this).parent().attr('id');
@@ -66,6 +66,7 @@ $( document ).ready(function() {
 
         // Add the ID to the "Delete" array of inputs
         var html = '<input type="hidden" name="' + nameSpace + '[' + name + '][delete][]" value="' + toDelete + '" id="mTm-toDelete-' + toDelete + '" />';
+        nameSpace = $(this).attr('data-nameSpace').replace('[','-').replace(']','');
         $('#' + nameSpace + '-' + name + '-' + 'toDelete').append(html);
 
         // Allow the element to be re-selected by the Modal
