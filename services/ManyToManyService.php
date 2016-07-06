@@ -17,15 +17,17 @@ class ManyToManyService extends BaseApplicationComponent
     {
 
         $criteria = craft()->elements->getCriteria(ElementType::Entry);
-        $criteria->section = $section;
-        $criteria->limit   = null;
-        $criteria->relatedTo = array(
+        $criteria->section       = $section;
+        $criteria->limit         = null;
+        $criteria->status        = null;
+        $criteria->localeEnabled = null;
+        $criteria->relatedTo     = array(
             'targetElement' => $element,
             'field'         => $field
         );
         $elements = craft()->elements->findElements($criteria);
         return $elements;
-        
+
     }
 
     /**
@@ -35,7 +37,7 @@ class ManyToManyService extends BaseApplicationComponent
      */
     public function saveRelationship(BaseFieldType $fieldType)
     {
-        
+
         // Set the element ID of this element
         $targetId = $fieldType->element->id;
 
@@ -52,7 +54,7 @@ class ManyToManyService extends BaseApplicationComponent
         // sourceId --> The elementIds that create the relationship initially. This is currently stored in the $postContent array
         // targetId --> $elementId, this is the reverse of the relationship
         $fieldId = $postContent['singleField'];
-        
+
         // The relationships we either want to add or leave
         $toAdd = array();
         if (!empty($postContent['add'])) {
@@ -64,11 +66,11 @@ class ManyToManyService extends BaseApplicationComponent
         if (!empty($postContent['delete'])) {
             $toDelete = $postContent['delete'];
         }
-        
+
         // First handle adding or updating the relationships that have to exist
         if (!empty($toAdd)) {
             foreach ($toAdd as $sourceId) {
-                
+
                 // 1.) Check and see if this relationship already exists. If it does, do nothing.
                 // 2.) If the relationship does NOT exist, create it.
                 $exists = craft()->db->createCommand()
@@ -78,7 +80,7 @@ class ManyToManyService extends BaseApplicationComponent
                     ->andWhere('sourceId = :sourceId', array(':sourceId' => $sourceId))
                     ->andWhere('targetId = :targetId', array(':targetId' => $targetId))
                     ->queryColumn();
-                
+
                 // The relationship doesn't exist. Add it! For now, the relationship get's added to the beginning
                 // of the sort order. This could change.
                 if (empty($exists)) {
