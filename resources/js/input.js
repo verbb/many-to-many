@@ -7,7 +7,7 @@ function openModal(target, selectedSection, name, nameSpace) {
         resizable:          true,
         storageKey:         'mTm' + target,
         sources:            ['section:' + selectedSection],
-        criteria:           { status: null },
+        criteria:           { status: null, localeEnabled: null },
         multiSelect:        true,
         disabledElementIds: nonSelectable,
         disableOnSelect:    true,
