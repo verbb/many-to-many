@@ -3,9 +3,18 @@
 namespace OberonAmsterdam\ManyToMany\fields;
 
 use Craft;
+use yii\db\Schema;
+use craft\base\ElementInterface;
+use craft\helpers\Db;
+use craft\helpers\Json;
 
 class Field extends craft\base\Field
 {
+    /** @var array Section Source */
+    public $source;
+    /** @var string Associated Field Type */
+    public $singleField;
+
     /**
      * Get display name for field type dropdown.
      *
@@ -15,11 +24,69 @@ class Field extends craft\base\Field
     {
         return Craft::t('craft-manytomany', 'Many to Many');
     }
-    
-    // public function defineContentAttribute()
-    // {
-    //     return false;
-    // }
+
+    /**
+     * Declare whether or not this field stores data in its own column.
+     *
+     * @return bool
+     */
+    public static function hasContentColumn(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Define settings.
+     *
+     * @return array
+     */
+    public function settingsAttributes(): array
+    {
+        $attributes = parent::settingsAttributes();
+        $attributes[] = 'source';
+        $attributes[] = 'singleField';
+
+        return $attributes;
+    }
+
+    /**
+     * Get template for field type settings.
+     * 
+     * @return string
+     */
+    public function getSettingsHtml(): string
+    {
+        $allSections = Craft::$app->sections->getAllSections();
+        $allFields = Craft::$app->fields->getAllFields();
+
+        // Group the Sections into an array
+        $elements = [];
+        foreach ($allSections as $element) {
+            $elements[$element->id] = $element->name;
+        }
+
+        // Group Field Types into an array
+        $fields = [];
+        if (!empty($allFields)) {
+            foreach ($allFields as $field) {
+                $fields[$field->id] = $field->name;
+            }
+        }
+
+        // Get the Section Source
+        if (empty($this->source)) {
+            $this->source = ['type' => '', 'value' => ''];
+        }
+
+        return Craft::$app->getView()->renderTemplate(
+            'craft-manytomany/_settings', [
+                'source' => $this->source,
+                'singleField' => $this->singleField,
+                'elements' => $elements,
+                'fields' => $fields,
+            ]
+        );
+    }
 
     /**
      * getInputHtml
@@ -89,62 +156,6 @@ class Field extends craft\base\Field
     //         'singleField'   => $singleField,
     //         'nameSpace'     => craft()->templates->getNamespace(),
     //     ));
-    // }
-
-    /**
-     * [defineSettings description]
-     * @return [type]
-     */
-    // protected function defineSettings()
-    // {
-    //     return array(
-    //         'source'       => AttributeType::Mixed,
-    //         'singleField'  => AttributeType::Mixed,
-    //     );
-    // }
-
-    /**
-     * [getSettingsHtml description]
-     * @return [type]
-     */
-    // public function getSettingsHtml()
-    // {
-    //
-    //     $allSections = craft()->sections->getAllSections();
-    //     $allFields   = craft()->fields->getAllFields();
-    //
-    //     // Group the Sections into an array
-    //     $elements = array();
-    //     foreach($allSections as $element)
-    //     {
-    //         $elements[$element->id] = $element->name;
-    //     }
-    //
-    //     // Group Field Types into an array
-    //     $fields = array();
-    //     if (!empty($allFields)) {
-    //         foreach ($allFields as $field) {
-    //             $fields[$field->id] = $field->name;
-    //         }
-    //     }
-    //
-    //     // Get the Section Source
-    //     $source = $this->getSettings()->source;
-    //     if (empty($source)) {
-    //         $source = array('type' => '', 'value' => '');
-    //     }
-    //
-    //     // Get the associated Field Type
-    //     $singleField = $this->getSettings()->singleField;
-    //
-    //     return craft()->templates->render(
-    //         'manytomany/settings', array(
-    //             'source'      => $source,
-    //             'singleField' => $singleField,
-    //             'elements'    => $elements,
-    //             'fields'      => $fields,
-    //         )
-    //     );
     // }
 
     /**
