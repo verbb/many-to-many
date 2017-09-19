@@ -14,12 +14,15 @@ use Craft;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Fields;
 use OberonAmsterdam\ManyToMany\fields\Field;
+use OberonAmsterdam\ManyToMany\services\Service;
 use yii\base\Event;
 
 /**
  * @author    Oberon Amsterdam
  * @package   Plugin
  * @since     1.0.0
+ *
+ * @property Service $service
  */
 class Plugin extends craft\base\Plugin
 {
@@ -31,16 +34,20 @@ class Plugin extends craft\base\Plugin
         parent::init();
         self::$plugin = $this;
 
-        Craft::info(
-            Craft::t('craft-manytomany', '{name} plugin loaded', ['name' => $this->name]),
-            __METHOD__
-        );
+        $this->setComponents([
+            'service' => Service::class,
+        ]);
 
         // Register our fields
         Event::on(Fields::class, Fields::EVENT_REGISTER_FIELD_TYPES,
             function (RegisterComponentTypesEvent $event) {
                 $event->types[] = Field::class;
             }
+        );
+
+        Craft::info(
+            Craft::t('craft-manytomany', '{name} plugin loaded', ['name' => $this->name]),
+            __METHOD__
         );
     }
 }

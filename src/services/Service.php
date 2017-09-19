@@ -2,31 +2,39 @@
 
 namespace OberonAmsterdam\ManyToMany\services;
 
+use Craft;
+use craft\base\ElementInterface;
+use craft\elements\db\EntryQuery;
+use craft\elements\Entry;
+use craft\models\Section;
+
 class Service extends \craft\base\Component
 {
     var $element;
 
     /**
-     * [getRelatedEntries returns]
-     * Returns related entries from an element limited to a section
-     * @param  [type] $element
-     * @param  [type] $section
-     * @return [type]
+     * Returns related entries from an element limited to a section.
+     *
+     * @param ElementInterface $element
+     * @param Section $section
+     * @param string $field
+     *
+     * @return Entry[]
      */
-    public function getRelatedEntries($element, $section, $field)
+    public function getRelatedEntries(ElementInterface $element, Section $section, string $field): array
     {
-        // $criteria = craft()->elements->getCriteria(ElementType::Entry);
-        // $criteria->section       = $section;
-        // $criteria->limit         = null;
-        // $criteria->status        = null;
-        // $criteria->localeEnabled = null;
-        // $criteria->relatedTo     = array(
-        //     'targetElement' => $element,
-        //     'field'         => $field
-        // );
-        // $elements = craft()->elements->findElements($criteria);
-        // return $elements;
+        $query = Entry::find();
 
+        $query->section = $section;
+        $query->limit = null;
+        $query->status = null;
+        $query->enabledForSite = null;
+        $query->relatedTo = [
+            'targetElement' => $element,
+            'field' => $field,
+        ];
+
+        return $query->all();
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace OberonAmsterdam\ManyToMany\fields;
 
 use Craft;
+use craft\elements\Entry;
+use OberonAmsterdam\ManyToMany\Plugin;
 use yii\db\Schema;
 use craft\base\ElementInterface;
 use craft\helpers\Db;
@@ -51,7 +53,7 @@ class Field extends craft\base\Field
 
     /**
      * Get template for field type settings.
-     * 
+     *
      * @return string
      */
     public function getSettingsHtml(): string
@@ -89,74 +91,80 @@ class Field extends craft\base\Field
     }
 
     /**
-     * getInputHtml
+     * Product input HTML for edit pages.
      *
-     * @param  [type] $name
-     * @param  [type] $value
-     * @return [type]
+     * @param mixed $value
+     * @param ElementInterface|null $element
+     * @return string
      */
-    // public function getInputHtml($name, $value)
-    // {
-    //     $mtm = craft()->manyToMany;
-    //
-    //     // Setttings
-    //     $source = $this->getSettings()->source;
-    //     if (empty($source)) {
-    //         return Craft::t('To use the ' . $this->getName() . ' plugin you need to set a source.');
-    //     }
-    //     $singleField = $this->getSettings()->singleField;
-    //     if (empty($singleField)) {
-    //         return Craft::t('To use the ' . $this->getName() . ' plugin you need associate it with a related field.');
-    //     }
-    //
-    //     $singleFieldModel = craft()->fields->getFieldById($singleField);
-    //     if ($singleFieldModel->translatable) {
-    //         return Craft::t('The ' . $this->getName() . ' plugin does not currently work with localized content.');
-    //     }
-    //
-    //     // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
-    //     // refactored in the future to allow for multiple types
-    //
-    //     if (!is_object($this->element)) {
-    //         return Craft::t('For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.');
-    //     }
-    //
-    //     $elementType = $this->element->elementType;
-    //     if ($elementType != 'Entry') {
-    //         return Craft::t('For this version of the ' . $this->getName() . ' plugin, you can only use this field with Entries.');
-    //     }
-    //     $currentSection = $this->element->sectionId;
-    //     $relatedSection = craft()->sections->getSectionById($source['value']);
-    //
-    //
-    //     // Get all the entries that this has already been attached to
-    //     $relatedEntries = $mtm->getRelatedEntries($this->element, $relatedSection, $singleField);
-    //
-    //     // Put related Entries into an array that can be consumed by the JavaScript popup window
-    //     $nonSelectable = array();
-    //     if (!empty($relatedEntries)) {
-    //         foreach ($relatedEntries as $relatedEntry) {
-    //             $nonSelectable[] = $relatedEntry->id;
-    //         }
-    //     }
-    //     $nonSelectable = implode(',', $nonSelectable);
-    //
-    //     $id           = craft()->templates->formatInputId($name);
-    //     $namespacedId = craft()->templates->namespaceInputId($id, 'manytomany');
-    //
-    //     craft()->templates->includeJsResource('manytomany/js/input.js');
-    //
-    //     return craft()->templates->render('manytomany/input', array(
-    //         'name'          => $name,
-    //         'value'         => $value,
-    //         'id'            => $namespacedId,
-    //         'current'       => $relatedEntries,
-    //         'section'       => $relatedSection->id,
-    //         'nonSelectable' => $nonSelectable,
-    //         'singleField'   => $singleField,
-    //         'nameSpace'     => craft()->templates->getNamespace(),
-    //     ));
-    // }
+    public function getInputHtml($value, ElementInterface $element = null): string
+    {
+        $service = Plugin::$plugin->service;
+        $plugin = Plugin::$plugin;
+
+        // Validate settings
+        if (empty($this->source)) {
+            return Craft::t($plugin->handle, 'To use the ' . $plugin->name . ' plugin you need to set a source.');
+        }
+
+        if (empty($this->singleField)) {
+            return Craft::t($plugin->handle,
+                'To use the ' . $plugin->name . ' plugin you need associate it with a related field.');
+        }
+
+        $singleFieldModel = Craft::$app->fields->getFieldById($this->singleField);
+        if ($singleFieldModel->getIsTranslatable()) {
+            return Craft::t($plugin->handle,
+                'The ' . $plugin->name . ' plugin does not currently work with localized content.');
+        }
+
+        // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
+        // refactored in the future to allow for multiple types
+
+        if (!is_object($element)) {
+            return Craft::t($plugin->handle,
+                'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
+        }
+
+        $elementType = $element->refHandle();
+        if ($elementType != 'entry') {
+            return Craft::t($plugin->handle,
+                'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
+        }
+
+        /** @var Entry $element */
+        $currentSection = $element->sectionId;
+        $relatedSection = Craft::$app->sections->getSectionById($this->source['value']);
+
+        // Get all the entries that this has already been attached to
+        $relatedEntries = $service->getRelatedEntries($element, $relatedSection, $this->singleField);
+
+        // Put related Entries into an array that can be consumed by the JavaScript popup window
+        $nonSelectable = [];
+        if (!empty($relatedEntries)) {
+            foreach ($relatedEntries as $relatedEntry) {
+                $nonSelectable[] = $relatedEntry->id;
+            }
+        }
+        $nonSelectable = implode(',', $nonSelectable);
+
+        $id = Craft::$app->getView()->formatInputId('field');
+        $namespacedId = Craft::$app->getView()->namespaceInputId($id);
+
+        // TODO
+        // craft()->templates->includeJsResource('manytomany/js/input.js');
+
+        return Craft::$app->getView()->renderTemplate('craft-manytomany/_input', [
+            'name' => 'field',
+            'value' => $value,
+            'id' => $namespacedId,
+            'current' => $relatedEntries,
+            'section' => $relatedSection->id,
+            'nonSelectable' => $nonSelectable,
+            'singleField' => $this->singleField,
+            'nameSpace' => Craft::$app->getView()->getNamespace()
+        ]);
+    }
 
     /**
      * [onAfterElementSave description]
