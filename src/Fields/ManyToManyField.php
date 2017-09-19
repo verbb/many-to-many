@@ -1,16 +1,14 @@
 <?php
 
-namespace OberonAmsterdam\ManyToMany\fields;
+namespace OberonAmsterdam\ManyToMany\Fields;
 
 use Craft;
+use Craft\base\Field;
 use craft\elements\Entry;
-use OberonAmsterdam\ManyToMany\Plugin;
-use yii\db\Schema;
 use craft\base\ElementInterface;
-use craft\helpers\Db;
-use craft\helpers\Json;
+use OberonAmsterdam\ManyToMany\Plugin;
 
-class Field extends craft\base\Field
+class ManyToManyField extends Field
 {
     /** @var array Section Source */
     public $source;
@@ -70,6 +68,7 @@ class Field extends craft\base\Field
         // Group Field Types into an array
         $fields = [];
         if (!empty($allFields)) {
+            /** @var Field $field */
             foreach ($allFields as $field) {
                 $fields[$field->id] = $field->name;
             }
@@ -104,31 +103,31 @@ class Field extends craft\base\Field
 
         // Validate settings
         if (empty($this->source)) {
-            return Craft::t($plugin->handle, 'To use the ' . $plugin->name . ' plugin you need to set a source.');
+            return Craft::t('craft-manytomany', 'To use the ' . $plugin->name . ' plugin you need to set a source.');
         }
 
         if (empty($this->singleField)) {
-            return Craft::t($plugin->handle,
+            return Craft::t('craft-manytomany',
                 'To use the ' . $plugin->name . ' plugin you need associate it with a related field.');
         }
 
         $singleFieldModel = Craft::$app->fields->getFieldById($this->singleField);
         if ($singleFieldModel->getIsTranslatable()) {
-            return Craft::t($plugin->handle,
+            return Craft::t('craft-manytomany',
                 'The ' . $plugin->name . ' plugin does not currently work with localized content.');
         }
 
-        // For this itteration of the plugin, everything is a SECTION, but it's setup so it can be
+        // For this iteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
 
         if (!is_object($element)) {
-            return Craft::t($plugin->handle,
+            return Craft::t('craft-manytomany',
                 'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
         }
 
         $elementType = $element->refHandle();
         if ($elementType != 'entry') {
-            return Craft::t($plugin->handle,
+            return Craft::t('craft-manytomany',
                 'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
         }
 
@@ -162,7 +161,7 @@ class Field extends craft\base\Field
             'section' => $relatedSection->id,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
-            'nameSpace' => Craft::$app->getView()->getNamespace()
+            'nameSpace' => Craft::$app->getView()->getNamespace(),
         ]);
     }
 

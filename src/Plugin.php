@@ -11,22 +11,23 @@
 namespace OberonAmsterdam\ManyToMany;
 
 use Craft;
-use craft\events\RegisterComponentTypesEvent;
-use craft\services\Fields;
-use OberonAmsterdam\ManyToMany\fields\Field;
-use OberonAmsterdam\ManyToMany\services\Service;
 use yii\base\Event;
+use Craft\base\Plugin as BasePlugin;
+use craft\services\Fields;
+use craft\events\RegisterComponentTypesEvent;
+use OberonAmsterdam\ManyToMany\Fields\ManyToManyField;
+use OberonAmsterdam\ManyToMany\Services\ManyToManyService;
 
 /**
  * @author    Oberon Amsterdam
- * @package   Plugin
+ * @package   ManyToManyService
  * @since     1.0.0
  *
- * @property Service $service
+ * @property ManyToManyService $service
  */
-class Plugin extends craft\base\Plugin
+class Plugin extends BasePlugin
 {
-    /** @var Plugin */
+    /** @var self */
     public static $plugin;
 
     public function init(): void
@@ -35,19 +36,16 @@ class Plugin extends craft\base\Plugin
         self::$plugin = $this;
 
         $this->setComponents([
-            'service' => Service::class,
+            'service' => ManyToManyService::class,
         ]);
 
         // Register our fields
         Event::on(Fields::class, Fields::EVENT_REGISTER_FIELD_TYPES,
             function (RegisterComponentTypesEvent $event) {
-                $event->types[] = Field::class;
+                $event->types[] = ManyToManyField::class;
             }
         );
 
-        Craft::info(
-            Craft::t('craft-manytomany', '{name} plugin loaded', ['name' => $this->name]),
-            __METHOD__
-        );
+        Craft::info($this->name . ' plugin loaded', __METHOD__);
     }
 }

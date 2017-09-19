@@ -1,14 +1,13 @@
 <?php
 
-namespace OberonAmsterdam\ManyToMany\services;
+namespace OberonAmsterdam\ManyToMany\Services;
 
-use Craft;
-use craft\base\ElementInterface;
-use craft\elements\db\EntryQuery;
+use craft\base\Component;
 use craft\elements\Entry;
 use craft\models\Section;
+use craft\base\ElementInterface;
 
-class Service extends \craft\base\Component
+class ManyToManyService extends Component
 {
     var $element;
 
