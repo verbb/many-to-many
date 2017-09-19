@@ -10,13 +10,20 @@ use OberonAmsterdam\ManyToMany\Plugin;
 
 class ManyToManyField extends Field
 {
-    /** @var array Section Source */
+    /**
+     * Section source
+     * @var array
+     */
     public $source;
-    /** @var string Associated Field Type */
+
+    /**
+     * Associated field type
+     * @var string
+     */
     public $singleField;
 
     /**
-     * Get display name for field type dropdown.
+     * Get display name for field type.
      *
      * @return string
      */
