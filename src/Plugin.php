@@ -13,9 +13,8 @@ namespace OberonAmsterdam\ManyToMany;
 use Craft;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Fields;
+use OberonAmsterdam\ManyToMany\fields\Field;
 use yii\base\Event;
-
-use OberonAmsterdam\ManyToMany\fields\ManyToMany as ManyToManyField;
 
 /**
  * @author    Oberon Amsterdam
@@ -35,6 +34,13 @@ class Plugin extends craft\base\Plugin
         Craft::info(
             Craft::t('craft-manytomany', '{name} plugin loaded', ['name' => $this->name]),
             __METHOD__
+        );
+
+        // Register our fields
+        Event::on(Fields::class, Fields::EVENT_REGISTER_FIELD_TYPES,
+            function (RegisterComponentTypesEvent $event) {
+                $event->types[] = Field::class;
+            }
         );
     }
 }
