@@ -1,14 +1,43 @@
 {
-  "name": "page-8/craft-manytomany",
-  "description": "A Field Type plugin for CraftCMS that allows the management of relationships from both sides",
-  "authors": [
-    {
-      "name": "Page 8",
-      "homepage": "http://page-8.com/"
+    "name": "oberonamsterdam/craft-manytomany",
+    "description": "A Field Type plugin for Craft 3 that allows the management of relationships from both sides.",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "fieldtype",
+        "entries"
+    ],
+    "support": {
+        "docs": "https://github.com/oberonamsterdam/craft-manytomany/blob/master/README.md",
+        "issues": "https://github.com/oberonamsterdam/craft-manytomany/issues"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Oberon Amsterdam",
+            "homepage": "https://www.oberon.nl"
+        },
+        {
+          "name": "Page 8",
+          "homepage": "http://page-8.com/"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.0.0-beta.28"
+    },
+    "autoload": {
+        "psr-4": {
+          "OberonAmsterdam\\ManyToMany\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Many to Many Field Type",
+        "handle": "craft-manytomany",
+        "schemaVersion": "1.0.0",
+        "changelogUrl": "https://raw.githubusercontent.com/oberonamsterdam/craft-manytomany/master/CHANGELOG.md"
     }
-  ],
-  "type": "craft-plugin",
-  "require": {
-    "composer/installers": "~1.0"
-  }
 }
