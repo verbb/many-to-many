@@ -42,6 +42,7 @@ function openModal(target, selectedSection, name, nameSpace) {
         }
     });
 }
+
 $( document ).ready(function() {
 
     // Open The Modal

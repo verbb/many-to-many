@@ -19,6 +19,8 @@ use OberonAmsterdam\ManyToMany\Plugin;
 /**
  * @author    Oberon Amsterdam
  * @since     1.0.0
+ *
+ * @property string $settingsHtml
  */
 class ManyToManyField extends Field
 {
@@ -76,7 +78,7 @@ class ManyToManyField extends Field
     public function getSettingsHtml(): string
     {
         $allSections = Craft::$app->sections->getAllSections();
-        $allFields = Craft::$app->fields->getAllFields();
+        $allFields = Craft::$app->fields->getAllFields() ?? [];
 
         // Group the Sections into an array
         $elements = [];
@@ -86,11 +88,8 @@ class ManyToManyField extends Field
 
         // Group Field Types into an array
         $fields = [];
-        if (!empty($allFields)) {
-            /** @var Field $field */
-            foreach ($allFields as $field) {
-                $fields[$field->id] = $field->name;
-            }
+        foreach ($allFields as $field) {
+            $fields[$field->id] = $field->name;
         }
 
         // Get the Section Source
@@ -165,7 +164,7 @@ class ManyToManyField extends Field
         }
         $nonSelectable = implode(',', $nonSelectable);
 
-        $id = Craft::$app->getView()->formatInputId($this->handle); // TODO: Use correct input name
+        $id = Craft::$app->getView()->formatInputId($this->handle);
         $namespacedId = Craft::$app->getView()->namespaceInputId($id);
 
         return Craft::$app->getView()->renderTemplate('craft-manytomany/_input', [
@@ -181,7 +180,7 @@ class ManyToManyField extends Field
     }
 
     /**
-     * Save relation to target field.
+     * Save relationships on external field.
      *
      * @inheritdoc
      */

@@ -24,8 +24,6 @@ use OberonAmsterdam\ManyToMany\Fields\ManyToManyField;
  */
 class ManyToManyService extends Component
 {
-    var $element;
-
     /**
      * Returns related entries from an element limited to a section.
      *
@@ -52,91 +50,75 @@ class ManyToManyService extends Component
     }
 
     /**
-     * Save relationships on external fields
+     * Save relationships on external field.
      *
      * @param ManyToManyField $fieldType
      * @param ElementInterface $element
      */
     public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element)
     {
-        // Set the element ID of this element
+        // Get element ID of the current element
         $targetId = $element->getId();
 
         // Delete cache related to this element ID
         Craft::$app->templateCaches->deleteCachesByElementId($targetId);
 
-        // // Get the post values for this field
-        $handle = $fieldType->handle;
-        $postContent = $element->getFieldValue($handle);
+        // Get submitted field value
+        $content = $element->getFieldValue($fieldType->handle);
 
         // There are 3 Items we need to make up a unique relationship in the craft_relations table:
         // fieldId  --> We define this in the Field settings when creating it
-        // sourceId --> The elementIds that create the relationship initially. This is currently stored in the $postContent array
+        // sourceId --> The elementIds that create the relationship initially. This is currently stored in the $content array
         // targetId --> $elementId, this is the reverse of the relationship
-        $fieldId = $postContent['singleField'];
+        $fieldId = $fieldType->singleField;
 
         // The relationships we either want to add or leave
-        $toAdd = [];
-        if (!empty($postContent['add'])) {
-            $toAdd = $postContent['add'];
-        }
+        $toAdd = $content['add'] ?? [];
 
         // The relationships we want to remove
-        $toDelete = [];
-        if (!empty($postContent['delete'])) {
-            $toDelete = $postContent['delete'];
-        }
+        $toDelete = $content['delete'] ?? [];
 
-        // // First handle adding or updating the relationships that have to exist
-        if (!empty($toAdd)) {
-            foreach ($toAdd as $sourceId) {
+        // First handle adding or updating the relationships that have to exist
+        foreach ($toAdd as $sourceId) {
+            // Check if relation exists
+            $exists = (new Query())
+                ->select('id')
+                ->from('{{%relations}}')
+                ->where('fieldId = :fieldId', [':fieldId' => $fieldId])
+                ->andWhere('sourceId = :sourceId', [':sourceId' => $sourceId])
+                ->andWhere('targetId = :targetId', [':targetId' => $targetId])
+                ->exists();
 
-                // 1.) Check and see if this relationship already exists. If it does, do nothing.
-                // 2.) If the relationship does NOT exist, create it.
-                $exists = (new Query())
-                    ->select('id')
-                    ->from('{{%relations}}')
-                    ->where('fieldId = :fieldId', [':fieldId' => $fieldId])
-                    ->andWhere('sourceId = :sourceId', [':sourceId' => $sourceId])
-                    ->andWhere('targetId = :targetId', [':targetId' => $targetId])
-                    ->exists();
+            // Create relation if it does not exist
+            if (!$exists) {
+                $columns = [
+                    'fieldId' => $fieldId,
+                    'sourceId' => $sourceId,
+                    'sourceSiteId' => null,
+                    'targetId' => $targetId,
+                    'sortOrder' => 1,
+                ];
 
-                // The relationship doesn't exist. Add it! For now, the relationship get's added to the beginning
-                // of the sort order. This could change.
-                if (!$exists) {
-
-                    $columns = [
-                        'fieldId' => $fieldId,
-                        'sourceId' => $sourceId,
-                        'sourceSiteId' => null,
-                        'targetId' => $targetId,
-                        'sortOrder' => 1,
-                    ];
-                    Craft::$app->db->createCommand()->insert('{{%relations}}', $columns)->execute();
-                }
-
+                Craft::$app->db->createCommand()->insert('{{%relations}}', $columns)->execute();
             }
         }
 
         // Now, delete the existing relationships if the user removed them.
-        if (!empty($toDelete)) {
-            foreach ($toDelete as $sourceId) {
+        foreach ($toDelete as $sourceId) {
+            $oldRelationConditions = [
+                'and',
+                'fieldId = :fieldId',
+                'sourceId = :sourceId',
+                'targetId = :targetId',
+            ];
+            $oldRelationParams = [
+                ':fieldId' => $fieldId,
+                ':sourceId' => $sourceId,
+                ':targetId' => $targetId,
+            ];
 
-                $oldRelationConditions = [
-                    'and',
-                    'fieldId = :fieldId',
-                    'sourceId = :sourceId',
-                    'targetId = :targetId',
-                ];
-                $oldRelationParams = [
-                    ':fieldId' => $fieldId,
-                    ':sourceId' => $sourceId,
-                    ':targetId' => $targetId,
-                ];
-
-                Craft::$app->db->createCommand()->delete('relations', $oldRelationConditions,
-                    $oldRelationParams)->execute();
-            }
+            Craft::$app->db->createCommand()->delete('relations', $oldRelationConditions,
+                $oldRelationParams)->execute();
         }
     }
 }

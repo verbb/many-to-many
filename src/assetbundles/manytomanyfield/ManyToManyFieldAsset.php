@@ -33,8 +33,7 @@ class ManyToManyFieldAsset extends AssetBundle
         ];
 
         $this->js = [
-            'hide-input.js',
-            'input.js'
+            'input.js',
         ];
 
         parent::init();

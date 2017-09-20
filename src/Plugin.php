@@ -34,17 +34,19 @@ class Plugin extends BasePlugin
         parent::init();
         self::$plugin = $this;
 
+        // Register services
         $this->setComponents([
             'service' => ManyToManyService::class,
         ]);
 
-        // Register our fields
+        // Register fields
         Event::on(Fields::class, Fields::EVENT_REGISTER_FIELD_TYPES,
             function (RegisterComponentTypesEvent $event) {
                 $event->types[] = ManyToManyField::class;
             }
         );
 
+        // Log successfully loading plugin
         Craft::info($this->name . ' plugin loaded', __METHOD__);
     }
 }
