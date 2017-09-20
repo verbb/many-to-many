@@ -4,7 +4,7 @@
  *
  * A Field Type plugin for Craft 3 that allows the management of relationships from both sides.
  *
- * @link      https://www.oberon.nl
+ * @link      https://www.oberon.nl/
  * @copyright Copyright (c) 2017 Oberon Amsterdam
  */
 
@@ -12,15 +12,14 @@ namespace OberonAmsterdam\ManyToMany;
 
 use Craft;
 use yii\base\Event;
-use Craft\base\Plugin as BasePlugin;
 use craft\services\Fields;
+use Craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
 use OberonAmsterdam\ManyToMany\Fields\ManyToManyField;
 use OberonAmsterdam\ManyToMany\Services\ManyToManyService;
 
 /**
  * @author    Oberon Amsterdam
- * @package   ManyToManyService
  * @since     1.0.0
  *
  * @property ManyToManyService $service
