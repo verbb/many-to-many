@@ -121,32 +121,31 @@ class ManyToManyField extends Field
 
         // Validate settings
         if (empty($this->source)) {
-            return Craft::t('craft-manytomany', 'To use the ' . $plugin->name . ' plugin you need to set a source.');
+            return Craft::t('craft-manytomany', 'To use the {pluginName} plugin you need to set a source.',
+                ['pluginName' => $plugin->name]);
         }
 
         if (empty($this->singleField)) {
             return Craft::t('craft-manytomany',
-                'To use the ' . $plugin->name . ' plugin you need associate it with a related field.');
+                'To use the {pluginName} plugin you need associate it with a related field.',
+                ['pluginName' => $plugin->name]);
         }
 
         $singleFieldModel = Craft::$app->fields->getFieldById($this->singleField);
         if ($singleFieldModel->getIsTranslatable()) {
             return Craft::t('craft-manytomany',
-                'The ' . $plugin->name . ' plugin does not currently work with localized content.');
+                'The {pluginName} plugin does not currently work with localized content.',
+                ['pluginName' => $plugin->name]);
         }
 
         // For this iteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
 
-        if (!is_object($element)) {
-            return Craft::t('craft-manytomany',
-                'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
-        }
-
         $elementType = $element->refHandle();
-        if ($elementType != 'entry') {
+        if (!is_object($element) || $elementType != 'entry') {
             return Craft::t('craft-manytomany',
-                'For this version of the ' . $plugin->name . ' plugin, you can only use this field with Entries.');
+                'For this version of the {pluginName} plugin, you can only use this field with Entries.',
+                ['pluginName' => $plugin->name]);
         }
 
         /** @var Entry $element */
