@@ -6,7 +6,7 @@ use Craft;
 use Craft\base\Field;
 use craft\elements\Entry;
 use craft\base\ElementInterface;
-use OberonAmsterdam\ManyToMany\Plugin;
+use OberonAmsterdam\ManyToMany\ManyToMany;
 
 class ManyToManyField extends Field
 {
@@ -105,8 +105,8 @@ class ManyToManyField extends Field
      */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        $service = Plugin::$plugin->service;
-        $plugin = Plugin::$plugin;
+        $service = ManyToMany::$plugin->service;
+        $plugin = ManyToMany::$plugin;
 
         // Validate settings
         if (empty($this->source)) {
