@@ -151,7 +151,6 @@ class ManyToManyField extends Field
         }
 
         /** @var Entry $element */
-        $currentSection = $element->sectionId;
         $relatedSection = Craft::$app->sections->getSectionById($this->source['value']);
 
         // Get all the entries that this has already been attached to
@@ -166,14 +165,11 @@ class ManyToManyField extends Field
         }
         $nonSelectable = implode(',', $nonSelectable);
 
-        $id = Craft::$app->getView()->formatInputId('field');
+        $id = Craft::$app->getView()->formatInputId($this->handle); // TODO: Use correct input name
         $namespacedId = Craft::$app->getView()->namespaceInputId($id);
 
-        // TODO
-        // craft()->templates->includeJsResource('manytomany/js/input.js');
-
         return Craft::$app->getView()->renderTemplate('craft-manytomany/_input', [
-            'name' => 'field',
+            'name' => $this->handle,
             'value' => $value,
             'id' => $namespacedId,
             'current' => $relatedEntries,
@@ -185,11 +181,14 @@ class ManyToManyField extends Field
     }
 
     /**
-     * [onAfterElementSave description]
-     * @return [type] [description]
+     * Save relation to target field.
+     *
+     * @inheritdoc
      */
-    // public function onAfterElementSave()
-    // {
-    //     craft()->manyToMany->saveRelationship($this);
-    // }
+    public function afterElementSave(ElementInterface $element, bool $isNew)
+    {
+        Plugin::$plugin->service->saveRelationship($this, $element);
+
+        parent::afterElementSave($element, $isNew);
+    }
 }
