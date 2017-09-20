@@ -65,7 +65,7 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 4. Other stuff I assume.
 
 ## Feedback?
-Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](http://page-8.com)
+Contact us on Twitter [@OberonAmsterdam](https://twitter.com/OberonAmsterdam) or visit us at [oberon.nl](https://www.oberon.nl), or create an [issue](https://github.com/oberonamsterdam/craft-manytomany/issues).
 
 ## Version History
 * 1.0.0 - Upgraded to support Craft 3
