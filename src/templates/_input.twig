@@ -1,4 +1,6 @@
 <div class="mTm-modal-hide">
+    {% do view.registerAssetBundle("OberonAmsterdam\\ManyToMany\\assetbundles\\manytomanyfield\\ManyToManyFieldAsset") %}
+
     {% import "_includes/forms" as forms %}
 
     {{ forms.hidden({
