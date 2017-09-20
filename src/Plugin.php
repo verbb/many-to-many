@@ -25,7 +25,7 @@ use OberonAmsterdam\ManyToMany\Services\ManyToManyService;
  *
  * @property ManyToManyService $service
  */
-class ManyToMany extends BasePlugin
+class Plugin extends BasePlugin
 {
     /** @var self */
     public static $plugin;
