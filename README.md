@@ -1,5 +1,3 @@
-⚠️ This plugin is unfinished. ⚠️
-
 # Many to Many Field Type plugin for Craft 3
 
 Many to Many is a [Craft CMS](http://www.craftcms.com) plugin developed by [Page 8](http://page-8.com) and updated to support Craft 3 by [Oberon](https://www.oberon.nl). This plugin allows you to manage relationships in Craft from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
@@ -59,10 +57,11 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 
 
 ## To Do
-1. Allow the field to work across all (or at least more) Element Types. Currently only supports Entries
-2. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type)
-3. Fix a bug that doesn't allow it to work from the modal tab
-4. Other stuff I assume.
+1. Ability to get related entries via the field attribute.
+2. Allow the field to work across all (or at least more) Element Types. Currently only supports Entries.
+3. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type).
+4. Fix a bug that doesn't allow it to work from the modal tab.
+5. Other stuff I assume.
 
 ## Feedback?
 Contact us on Twitter [@OberonAmsterdam](https://twitter.com/OberonAmsterdam) or visit us at [oberon.nl](https://www.oberon.nl), or create an [issue](https://github.com/oberonamsterdam/craft-manytomany/issues).
