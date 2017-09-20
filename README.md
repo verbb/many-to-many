@@ -1,6 +1,6 @@
 ⚠️ This plugin is unfinished. ⚠️
 
-#Many to Many Field Type plugin for Craft 3
+# Many to Many Field Type plugin for Craft 3
 
 Many to Many is a [Craft CMS](http://www.craftcms.com) plugin developed by [Page 8](http://page-8.com) and updated to support Craft 3 by [Oberon](https://www.oberon.nl). This plugin allows you to manage relationships in Craft from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
 
