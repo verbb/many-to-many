@@ -72,17 +72,21 @@ $(document).ready(function () {
         nameSpace = $(this).attr('data-nameSpace').replace('[', '-').replace(']', '');
         $('#' + nameSpace + '-' + name + '-' + 'toDelete').append(html);
 
+        let nonSelectableInput = $('#' + nameSpace + '-' + name + 'nonSelectable');
+
         // Allow the element to be re-selected by the Modal
-        let curNonSelectable = $('#' + nameSpace + '-' + name + 'nonSelectable').val();
+        let curNonSelectable = nonSelectableInput.val();
         curNonSelectable = JSON.parse("[" + curNonSelectable + "]");
-        y = jQuery.grep(curNonSelectable, function (value) {
+        let newNonSelectable = jQuery.grep(curNonSelectable, function (value) {
             return value != toDelete;
         });
+        nonSelectableInput.val(newNonSelectable);
 
         // Remove the Element
         $('#' + parentId).fadeOut('fast', function () {
             $('#' + parentId).remove();
         });
+
         return false;
     });
 
