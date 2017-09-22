@@ -1,12 +1,12 @@
 <?php
 
-namespace OberonAmsterdam\ManyToMany\fields;
+namespace Page8\ManyToMany\fields;
 
 use Craft;
 use Craft\base\Field;
 use craft\elements\Entry;
 use craft\base\ElementInterface;
-use OberonAmsterdam\ManyToMany\Plugin;
+use Page8\ManyToMany\Plugin;
 
 /**
  * @property string $settingsHtml
@@ -32,7 +32,7 @@ class ManyToManyField extends Field
      */
     public static function displayName(): string
     {
-        return Craft::t('craft-manytomany', 'Many to Many');
+        return Craft::t('manytomany', 'Many to Many');
     }
 
     /**
@@ -87,7 +87,7 @@ class ManyToManyField extends Field
         }
 
         return Craft::$app->getView()->renderTemplate(
-            'craft-manytomany/_settings', [
+            'manytomany/_settings', [
                 'source' => $this->source,
                 'singleField' => $this->singleField,
                 'elements' => $elements,
@@ -110,19 +110,19 @@ class ManyToManyField extends Field
 
         // Validate settings
         if (empty($this->source)) {
-            return Craft::t('craft-manytomany', 'To use the {pluginName} plugin you need to set a source.',
+            return Craft::t('manytomany', 'To use the {pluginName} plugin you need to set a source.',
                 ['pluginName' => $plugin->name]);
         }
 
         if (empty($this->singleField)) {
-            return Craft::t('craft-manytomany',
+            return Craft::t('manytomany',
                 'To use the {pluginName} plugin you need associate it with a related field.',
                 ['pluginName' => $plugin->name]);
         }
 
         $singleFieldModel = Craft::$app->fields->getFieldById($this->singleField);
         if ($singleFieldModel->getIsTranslatable()) {
-            return Craft::t('craft-manytomany',
+            return Craft::t('manytomany',
                 'The {pluginName} plugin does not currently work with localized content.',
                 ['pluginName' => $plugin->name]);
         }
@@ -131,7 +131,7 @@ class ManyToManyField extends Field
         // refactored in the future to allow for multiple types
 
         if (!is_object($element) || $element->refHandle() != 'entry') {
-            return Craft::t('craft-manytomany',
+            return Craft::t('manytomany',
                 'For this version of the {pluginName} plugin, you can only use this field with Entries.',
                 ['pluginName' => $plugin->name]);
         }
@@ -154,7 +154,7 @@ class ManyToManyField extends Field
         $id = Craft::$app->getView()->formatInputId($this->handle);
         $namespacedId = Craft::$app->getView()->namespaceInputId($id);
 
-        return Craft::$app->getView()->renderTemplate('craft-manytomany/_input', [
+        return Craft::$app->getView()->renderTemplate('manytomany/_input', [
             'name' => $this->handle,
             'value' => $value,
             'id' => $namespacedId,

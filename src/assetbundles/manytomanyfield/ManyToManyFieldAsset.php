@@ -1,6 +1,6 @@
 <?php
 
-namespace OberonAmsterdam\ManyToMany\assetbundles\manytomanyfield;
+namespace Page8\ManyToMany\assetbundles\manytomanyfield;
 
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset;

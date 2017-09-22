@@ -1,6 +1,6 @@
 <?php
 
-namespace OberonAmsterdam\ManyToMany\services;
+namespace Page8\ManyToMany\services;
 
 use Craft;
 use craft\db\Query;
@@ -8,7 +8,7 @@ use craft\elements\Entry;
 use craft\models\Section;
 use craft\base\Component;
 use craft\base\ElementInterface;
-use OberonAmsterdam\ManyToMany\fields\ManyToManyField;
+use Page8\ManyToMany\fields\ManyToManyField;
 
 class ManyToManyService extends Component
 {

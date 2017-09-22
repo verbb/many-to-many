@@ -5,15 +5,15 @@
  * A Field Type plugin for Craft 3 that allows the management of relationships from both sides.
  */
 
-namespace OberonAmsterdam\ManyToMany;
+namespace Page8\ManyToMany;
 
 use Craft;
 use yii\base\Event;
 use craft\services\Fields;
 use Craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
-use OberonAmsterdam\ManyToMany\fields\ManyToManyField;
-use OberonAmsterdam\ManyToMany\services\ManyToManyService;
+use Page8\ManyToMany\fields\ManyToManyField;
+use Page8\ManyToMany\services\ManyToManyService;
 
 /**
  * @property ManyToManyService service

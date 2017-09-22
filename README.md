@@ -4,7 +4,7 @@ Many to Many is a [Craft CMS](http://www.craftcms.com) plugin developed by [Page
 
 ## Requirements
 
-This plugin requires Craft CMS 3.0.0-beta.23 or later.
+This plugin requires Craft CMS 3.0.0-beta.28 or later.
 
 ## Installation
 
@@ -16,7 +16,7 @@ To install the plugin, follow these instructions.
 
 2. Then tell Composer to load the plugin:
 
-        composer require oberonamsterdam/craft-manytomany
+        composer require page-8/craft-manytomany
 
 3. In the Control Panel, go to Settings → Plugins and click the “Install” button for Many to Many Field Type.
 
@@ -56,20 +56,18 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 ```
 
 ## Feedback?
-Contact us on Twitter [@OberonAmsterdam](https://twitter.com/OberonAmsterdam), visit us at [oberon.nl](https://www.oberon.nl) or create an [issue](https://github.com/oberonamsterdam/craft-manytomany/issues).
+Contact us on Twitter [@Page8Online](https://twitter.com/Page8Online) or visit us at [page-8.com](http://page-8.com)
 
 ## Version History
-* 1.0.0 - Upgraded to support Craft 3
 * 0.1.2 - Added translatable text
 * 0.1.1 - Optimized the cache control. Instead of clearing all Entry types from the cache, just clears records related to the changed element
 * 0.1.0 - Initial Release
 
 ## To Do
-1. Ability to get related entries via the field attribute.
-2. Allow the field to work across all (or at least more) Element Types. Currently only supports Entries.
-3. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type).
-4. Fix a bug that doesn't allow it to work from the modal tab.
-5. Other stuff I assume.
+1. Allow the field to work across all (or at least more) Element Types. Currently only supports Entries.
+2. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type).
+3. Fix a bug that doesn't allow it to work from the modal tab.
+4. Other stuff I assume.
 
 ### Notes
 * Currently doesn't support locales
