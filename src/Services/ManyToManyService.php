@@ -117,7 +117,7 @@ class ManyToManyService extends Component
                 ':targetId' => $targetId,
             ];
 
-            Craft::$app->db->createCommand()->delete('relations', $oldRelationConditions,
+            Craft::$app->db->createCommand()->delete('{{%relations}}', $oldRelationConditions,
                 $oldRelationParams)->execute();
         }
     }

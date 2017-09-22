@@ -55,6 +55,14 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 {% endfor %}
 ```
 
+## Feedback?
+Contact us on Twitter [@OberonAmsterdam](https://twitter.com/OberonAmsterdam), visit us at [oberon.nl](https://www.oberon.nl) or create an [issue](https://github.com/oberonamsterdam/craft-manytomany/issues).
+
+## Version History
+* 1.0.0 - Upgraded to support Craft 3
+* 0.1.2 - Added translatable text
+* 0.1.1 - Optimized the cache control. Instead of clearing all Entry types from the cache, just clears records related to the changed element
+* 0.1.0 - Initial Release
 
 ## To Do
 1. Ability to get related entries via the field attribute.
@@ -62,15 +70,6 @@ Since this plugin relies on Craft's built in relationships, you can continue to 
 3. Allow custom ordering of the secondary relationship. Currently you can only order the primary relationship (by Craft's native ordering of the Entries field type).
 4. Fix a bug that doesn't allow it to work from the modal tab.
 5. Other stuff I assume.
-
-## Feedback?
-Contact us on Twitter [@OberonAmsterdam](https://twitter.com/OberonAmsterdam) or visit us at [oberon.nl](https://www.oberon.nl), or create an [issue](https://github.com/oberonamsterdam/craft-manytomany/issues).
-
-## Version History
-* 1.0.0 - Upgraded to support Craft 3
-* 0.1.2 - Added translatable text
-* 0.1.1 - Optimized the cache control. Instead of clearing all Entry types from the cache, just clears records related to the changed element
-* 0.1.0 - Initial Release
 
 ### Notes
 * Currently doesn't support locales

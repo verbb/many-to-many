@@ -116,8 +116,8 @@ class ManyToManyField extends Field
      */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        $service = Plugin::$plugin->service;
         $plugin = Plugin::$plugin;
+        $service = $plugin->service;
 
         // Validate settings
         if (empty($this->source)) {
@@ -141,8 +141,7 @@ class ManyToManyField extends Field
         // For this iteration of the plugin, everything is a SECTION, but it's setup so it can be
         // refactored in the future to allow for multiple types
 
-        $elementType = $element->refHandle();
-        if (!is_object($element) || $elementType != 'entry') {
+        if (!is_object($element) || $element->refHandle() != 'entry') {
             return Craft::t('craft-manytomany',
                 'For this version of the {pluginName} plugin, you can only use this field with Entries.',
                 ['pluginName' => $plugin->name]);
