@@ -3,9 +3,6 @@
  * Many to Many Field Type plugin for Craft CMS 3.x
  *
  * A Field Type plugin for Craft 3 that allows the management of relationships from both sides.
- *
- * @link      https://www.oberon.nl/
- * @copyright Copyright (c) 2017 Oberon Amsterdam
  */
 
 namespace OberonAmsterdam\ManyToMany;
@@ -15,14 +12,11 @@ use yii\base\Event;
 use craft\services\Fields;
 use Craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
-use OberonAmsterdam\ManyToMany\Fields\ManyToManyField;
-use OberonAmsterdam\ManyToMany\Services\ManyToManyService;
+use OberonAmsterdam\ManyToMany\fields\ManyToManyField;
+use OberonAmsterdam\ManyToMany\services\ManyToManyService;
 
 /**
- * @author    Oberon Amsterdam
- * @since     1.0.0
- *
- * @property ManyToManyService $service
+ * @property ManyToManyService service
  */
 class Plugin extends BasePlugin
 {

@@ -1,17 +1,5 @@
 <?php
-/**
- * Many to Many Field Type plugin for Craft CMS 3.x
- *
- * A Field Type plugin for Craft 3 that allows the management of relationships from both sides.
- *
- * @link      https://www.oberon.nl/
- * @copyright Copyright (c) 2017 Oberon Amsterdam
- */
 
-/**
- * @author    Oberon Amsterdam
- * @since     1.0.0
- */
 return [
     'Many to Many' => 'Many to Many',
     'Linked Section' => 'Linked Section',

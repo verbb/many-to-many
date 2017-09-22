@@ -18,12 +18,12 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Oberon Amsterdam",
-            "homepage": "https://www.oberon.nl"
+            "name": "Page 8",
+            "homepage": "http://page-8.com/"
         },
         {
-          "name": "Page 8",
-          "homepage": "http://page-8.com/"
+            "name": "Oberon Amsterdam",
+            "homepage": "https://www.oberon.nl"
         }
     ],
     "require": {

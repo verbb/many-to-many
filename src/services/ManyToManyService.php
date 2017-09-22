@@ -1,14 +1,6 @@
 <?php
-/**
- * Many to Many Field Type plugin for Craft CMS 3.x
- *
- * A Field Type plugin for Craft 3 that allows the management of relationships from both sides.
- *
- * @link      https://www.oberon.nl/
- * @copyright Copyright (c) 2017 Oberon Amsterdam
- */
 
-namespace OberonAmsterdam\ManyToMany\Services;
+namespace OberonAmsterdam\ManyToMany\services;
 
 use Craft;
 use craft\db\Query;
@@ -16,12 +8,8 @@ use craft\elements\Entry;
 use craft\models\Section;
 use craft\base\Component;
 use craft\base\ElementInterface;
-use OberonAmsterdam\ManyToMany\Fields\ManyToManyField;
+use OberonAmsterdam\ManyToMany\fields\ManyToManyField;
 
-/**
- * @author    Oberon Amsterdam
- * @since     1.0.0
- */
 class ManyToManyService extends Component
 {
     /**
