@@ -5,8 +5,8 @@ namespace Page8\ManyToMany\fields;
 use Craft;
 use Craft\base\Field;
 use craft\elements\Entry;
-use craft\base\ElementInterface;
 use Page8\ManyToMany\Plugin;
+use craft\base\ElementInterface;
 
 /**
  * @property string $settingsHtml
@@ -86,7 +86,7 @@ class ManyToManyField extends Field
             $this->source = ['type' => '', 'value' => ''];
         }
 
-        return Craft::$app->getView()->renderTemplate(
+        return Craft::$app->view->renderTemplate(
             'manytomany/_settings', [
                 'source' => $this->source,
                 'singleField' => $this->singleField,
@@ -151,10 +151,10 @@ class ManyToManyField extends Field
         }
         $nonSelectable = implode(',', $nonSelectable);
 
-        $id = Craft::$app->getView()->formatInputId($this->handle);
-        $namespacedId = Craft::$app->getView()->namespaceInputId($id);
+        $id = Craft::$app->view->formatInputId($this->handle);
+        $namespacedId = Craft::$app->view->namespaceInputId($id);
 
-        return Craft::$app->getView()->renderTemplate('manytomany/_input', [
+        return Craft::$app->view->renderTemplate('manytomany/_input', [
             'name' => $this->handle,
             'value' => $value,
             'id' => $namespacedId,
@@ -162,7 +162,7 @@ class ManyToManyField extends Field
             'section' => $relatedSection->id,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
-            'nameSpace' => Craft::$app->getView()->getNamespace(),
+            'nameSpace' => Craft::$app->view->getNamespace(),
         ]);
     }
 
