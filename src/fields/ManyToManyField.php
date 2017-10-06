@@ -105,7 +105,7 @@ class ManyToManyField extends Field
      */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        $plugin = Plugin::$plugin;
+        $plugin = Plugin::getInstance();
         $service = $plugin->service;
 
         // Validate settings
@@ -173,7 +173,7 @@ class ManyToManyField extends Field
      */
     public function afterElementSave(ElementInterface $element, bool $isNew)
     {
-        Plugin::$plugin->service->saveRelationship($this, $element);
+        Plugin::getInstance()->service->saveRelationship($this, $element);
 
         parent::afterElementSave($element, $isNew);
     }

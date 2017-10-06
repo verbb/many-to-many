@@ -20,13 +20,9 @@ use Page8\ManyToMany\services\ManyToManyService;
  */
 class Plugin extends BasePlugin
 {
-    /** @var self */
-    public static $plugin;
-
     public function init(): void
     {
         parent::init();
-        self::$plugin = $this;
 
         // Register services
         $this->setComponents([
