@@ -1,8 +1,8 @@
 {% import "_includes/forms" as forms %}
 
 {{ forms.selectField({
-    label: "Linked Section"|t,
-    instructions: "What is the section you want to link in this relationship?"|t,
+    label: "Linked Section"|t("manytomany"),
+    instructions: "What is the section you want to link in this relationship?"|t("manytomany"),
     id: 'source',
     name: 'source[value]',
     options: elements,
@@ -15,8 +15,8 @@
 })}}
 
 {{ forms.selectField({
-    label: "Associated Field"|t,
-    instructions: "This is the field you are using to create the initial association. This has to be created first."|t,
+    label: "Associated Field"|t("manytomany"),
+    instructions: "This is the field you are using to create the initial association. This has to be created first."|t("manytomany"),
     id: 'singleField',
     name: 'singleField',
     options: fields,
