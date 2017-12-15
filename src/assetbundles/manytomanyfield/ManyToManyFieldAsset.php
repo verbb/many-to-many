@@ -10,7 +10,7 @@ class ManyToManyFieldAsset extends AssetBundle
     /**
      * @inheritdoc
      */
-    public function init(): void
+    public function init()
     {
         $this->sourcePath = __DIR__ . '/dist';
 

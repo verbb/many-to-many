@@ -10,7 +10,7 @@ namespace Page8\ManyToMany;
 use Craft;
 use yii\base\Event;
 use craft\services\Fields;
-use Craft\base\Plugin as BasePlugin;
+use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
 use Page8\ManyToMany\fields\ManyToManyField;
 use Page8\ManyToMany\services\ManyToManyService;
@@ -20,7 +20,7 @@ use Page8\ManyToMany\services\ManyToManyService;
  */
 class Plugin extends BasePlugin
 {
-    public function init(): void
+    public function init()
     {
         parent::init();
 

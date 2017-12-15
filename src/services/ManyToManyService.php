@@ -43,7 +43,7 @@ class ManyToManyService extends Component
      * @param ManyToManyField $fieldType
      * @param ElementInterface $element
      */
-    public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element): void
+    public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element)
     {
         // Get element ID of the current element
         $targetId = $element->getId();
