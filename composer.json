@@ -2,7 +2,7 @@
     "name": "page-8/craft-manytomany",
     "description": "A Field Type plugin for Craft 3 that allows the management of relationships from both sides.",
     "type": "craft-plugin",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "keywords": [
         "craft",
         "cms",
@@ -37,7 +37,7 @@
     "extra": {
         "name": "Many to Many Field Type",
         "handle": "manytomany",
-        "schemaVersion": "1.0.0",
+        "schemaVersion": "1.0.2",
         "changelogUrl": "https://raw.githubusercontent.com/page-8/craft-manytomany/master/CHANGELOG.md"
     }
 }
