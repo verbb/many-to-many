@@ -2,7 +2,7 @@
     "name": "page-8/craft-manytomany",
     "description": "A Field Type plugin for Craft 3 that allows the management of relationships from both sides.",
     "type": "craft-plugin",
-    "version": "1.0.2",
+    "version": "1.0.2.1",
     "keywords": [
         "craft",
         "cms",
