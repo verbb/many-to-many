@@ -20,6 +20,10 @@ use Page8\ManyToMany\services\ManyToManyService;
  */
 class Plugin extends BasePlugin
 {
+    
+    public $changelogUrl = 'https://raw.githubusercontent.com/page-8/craft-manytomany/master/CHANGELOG.md';
+    public $downloadUrl = 'https://github.com/page-8/craft-manytomany.git';
+    
     public function init()
     {
         parent::init();
