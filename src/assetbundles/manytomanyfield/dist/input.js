@@ -30,13 +30,13 @@ function openModal(target, selectedSection, name, nameSpace) {
                     }
 
                     // Add the Entry to the DOM
-                    html += '<div class="element small removable unselectable" id="' + nameSpace + '-' + name + '-manyToMany-' + entry.id + '">' +
+                    html += '<div class="element small removable unselectable hasstatus" id="' + nameSpace + '-' + name + '-manyToMany-' + entry.id + '">' +
                         '    <input type="hidden" name="' + nameSpace + '[' + name + '][add][]" value="' + entry.id + '">' +
                         '   <a class="delete icon manyToManyDelete" data-nameSpace="' + nameSpace + '" data-name="' + name + '" data-remove="' + entry.id + '" title="Remove"></a>' +
                         '   <span class="status ' + entry.status + '"></span>' +
-                        '   <a href="' + entry.cpEditUrl + '" class="label">' +
+                        '   <div class="label">' +
                         '        <span class="title">' + entry.label + '</span>' +
-                        '    </a>' +
+                        '    </div>' +
                         '</div>';
                 }
 
