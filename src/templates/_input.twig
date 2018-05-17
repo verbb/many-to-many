@@ -13,7 +13,7 @@
             <div class="elements">
                 <div class="mTm{{ name }}">
                     {% for cur in current %}
-                        <div class="element small removable unselectable" id="{{ name }}-manyToMany-{{ cur.id }}">
+                        <div class="element small removable hasstatus unselectable" id="{{ name }}-manyToMany-{{ cur.id }}">
                             <input type="hidden" name="{{ name }}[add][]" value="{{ cur.id }}">
                             <a class="delete icon manyToManyDelete" data-nameSpace="{{ nameSpace }}" data-name="{{ name }}"  data-remove="{{ cur.id }}" title="Remove"></a>
                             <span class="status {{ cur.status }}"></span>
