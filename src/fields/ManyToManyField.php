@@ -180,6 +180,8 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     }
 
     /**
+     * Picks the first entry of a revers relationship (if any) and displays as link in the CP content table list
+     *
      * @inheritdoc
      */
     public function getTableAttributeHtml($value, ElementInterface $element): string
@@ -198,6 +200,6 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             ]);
         }
         return '';
-        }
+    }
 
 }
