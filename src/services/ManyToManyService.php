@@ -72,9 +72,9 @@ class ManyToManyService extends Component
             $exists = (new Query())
                 ->select('id')
                 ->from('{{%relations}}')
-                ->where('fieldId = :fieldId', [':fieldId' => $fieldId])
-                ->andWhere('sourceId = :sourceId', [':sourceId' => $sourceId])
-                ->andWhere('targetId = :targetId', [':targetId' => $targetId])
+                ->where('[[fieldId]] = :fieldId', [':fieldId' => $fieldId])
+                ->andWhere('[[sourceId]] = :sourceId', [':sourceId' => $sourceId])
+                ->andWhere('[[targetId]] = :targetId', [':targetId' => $targetId])
                 ->exists();
 
             // Create relation if it does not exist
@@ -95,9 +95,9 @@ class ManyToManyService extends Component
         foreach ($toDelete as $sourceId) {
             $oldRelationConditions = [
                 'and',
-                'fieldId = :fieldId',
-                'sourceId = :sourceId',
-                'targetId = :targetId',
+                '[[fieldId]] = :fieldId',
+                '[[sourceId]] = :sourceId',
+                '[[targetId]] = :targetId',
             ];
             $oldRelationParams = [
                 ':fieldId' => $fieldId,
