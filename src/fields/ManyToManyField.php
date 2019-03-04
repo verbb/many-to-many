@@ -160,7 +160,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'value' => $value,
             'id' => $namespacedId,
             'current' => $relatedEntries,
-            'section' => $relatedSection->id,
+            'section' => $relatedSection->uid,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
             'nameSpace' => Craft::$app->view->getNamespace(),
