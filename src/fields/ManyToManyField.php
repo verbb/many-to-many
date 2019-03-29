@@ -3,7 +3,7 @@
 namespace Page8\ManyToMany\fields;
 
 use Craft;
-use Craft\base\Field;
+use craft\base\Field;
 use craft\elements\Entry;
 use Page8\ManyToMany\Plugin;
 use craft\base\ElementInterface;
