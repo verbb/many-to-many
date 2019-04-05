@@ -159,7 +159,7 @@ class ManyToManyField extends Field
             'value' => $value,
             'id' => $namespacedId,
             'current' => $relatedEntries,
-            'section' => $relatedSection->id,
+            'section' => !empty($relatedSection->uid) ? $relatedSection->uid : $relatedSection->id,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
             'nameSpace' => Craft::$app->view->getNamespace(),
