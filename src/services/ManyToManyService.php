@@ -29,6 +29,7 @@ class ManyToManyService extends Component
         $query->limit = null;
         $query->status = null;
         $query->enabledForSite = null;
+        $query->siteId = $element->siteId;
         $query->relatedTo = [
             'targetElement' => $element,
             'field' => $field,
