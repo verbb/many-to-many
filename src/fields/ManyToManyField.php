@@ -56,6 +56,22 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     // Public Methods
     // =========================================================================
 
+    public function normalizeValue($value, ElementInterface $element = null)
+    {
+        $sourceValue = $this->source['value'] ?? null;
+
+        if ($element && $sourceValue && $this->singleField) {
+            $relatedSection = Craft::$app->getSections()->getSectionById($sourceValue);
+
+            // Get all the entries that this has already been attached to
+            if ($relatedSection) {
+                return ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+            }
+        }
+
+        return $value;
+    }
+
     public function getSettingsHtml(): string
     {
         $elements = [];
@@ -108,17 +124,13 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
         }
 
-        /** @var Entry $element */
         $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
-
-        // Get all the entries that this has already been attached to
-        $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
 
         // Put related Entries into an array that can be consumed by the JavaScript popup window
         $nonSelectable = [];
 
-        if (!empty($relatedEntries)) {
-            foreach ($relatedEntries as $relatedEntry) {
+        if (!empty($value)) {
+            foreach ($value as $relatedEntry) {
                 $nonSelectable[] = $relatedEntry->id;
             }
         }
@@ -132,7 +144,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'name' => $this->handle,
             'value' => $value,
             'id' => $namespacedId,
-            'current' => $relatedEntries,
+            'current' => $value,
             'section' => $relatedSection->uid ?? null,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
@@ -150,14 +162,9 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
 
     public function getTableAttributeHtml($value, ElementInterface $element): string
     {
-        $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
-        $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
-
-        $element = $relatedEntries[0] ?? null;
-
-        if ($element) {
+        if ($value) {
             return Craft::$app->getView()->renderTemplate('_elements/element', [
-                'element' => $element,
+                'element' => $value[0],
             ]);
         }
 
@@ -169,12 +176,6 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return [
             'name' => $this->handle,
             'type' => Type::listOf(EntryInterface::getType()),
-            'resolve' => function($element) {
-                $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
-                $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
-
-                return $relatedEntries;
-            },
         ];
     }
 }
