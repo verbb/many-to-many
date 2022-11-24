@@ -8,7 +8,10 @@ use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\base\PreviewableFieldInterface;
 use craft\elements\Entry;
+use craft\gql\interfaces\elements\Entry as EntryInterface;
 use craft\helpers\Html;
+
+use GraphQL\Type\Definition\Type;
 
 class ManyToManyField extends Field implements PreviewableFieldInterface
 {
@@ -53,29 +56,18 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     // Public Methods
     // =========================================================================
 
-    public function settingsAttributes(): array
-    {
-        $attributes = parent::settingsAttributes();
-        $attributes[] = 'source';
-        $attributes[] = 'singleField';
-
-        return $attributes;
-    }
-
     public function getSettingsHtml(): string
     {
-        $allSections = Craft::$app->getSections()->getAllSections();
-        $allFields = Craft::$app->getFields()->getAllFields() ?? [];
+        $elements = [];
+        $fields = [];
 
         // Group the Sections into an array
-        $elements = [];
-        foreach ($allSections as $element) {
+        foreach (Craft::$app->getSections()->getAllSections() as $element) {
             $elements[$element->id] = $element->name;
         }
 
         // Group Field Types into an array
-        $fields = [];
-        foreach ($allFields as $field) {
+        foreach (Craft::$app->getFields()->getAllFields() as $field) {
             $fields[$field->id] = $field->name;
         }
 
@@ -170,5 +162,19 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         }
 
         return '';
+    }
+
+    public function getContentGqlType()
+    {
+        return [
+            'name' => $this->handle,
+            'type' => Type::listOf(EntryInterface::getType()),
+            'resolve' => function($element) {
+                $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
+                $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+
+                return $relatedEntries;
+            },
+        ];
     }
 }
