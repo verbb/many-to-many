@@ -1,8 +1,8 @@
 {
-    "name": "page-8/craft-manytomany",
-    "description": "A Field Type plugin for Craft 3 that allows the management of relationships from both sides.",
+    "name": "verbb/many-to-many",
+    "description": "A field type to manage relationships from both sides.",
     "type": "craft-plugin",
-    "version": "1.0.2.2",
+    "version": "2.0.0",
     "keywords": [
         "craft",
         "cms",
@@ -12,11 +12,18 @@
         "entries"
     ],
     "support": {
-        "docs": "https://github.com/page-8/craft-manytomany/blob/master/README.md",
-        "issues": "https://github.com/page-8/craft-manytomany/issues"
+        "email": "support@verbb.io",
+        "issues": "https://github.com/verbb/many-to-many/issues?state=open",
+        "source": "https://github.com/verbb/many-to-many",
+        "docs": "https://github.com/verbb/many-to-many",
+        "rss": "https://github.com/verbb/many-to-many/commits/v2.atom"
     },
     "license": "MIT",
     "authors": [
+        {
+            "name": "Verbb",
+            "homepage": "https://verbb.io"
+        },
         {
             "name": "Page 8",
             "homepage": "http://page-8.com/"
@@ -27,17 +34,18 @@
         }
     ],
     "require": {
-        "craftcms/cms": "^3.0.0-beta.28"
+        "craftcms/cms": "^3.7.0",
+        "verbb/base": "^1.0.2"
     },
     "autoload": {
         "psr-4": {
-          "Page8\\ManyToMany\\": "src/"
+          "verbb\\manytomany\\": "src/"
         }
     },
     "extra": {
-        "name": "Many to Many Field Type",
+        "name": "Many to Many",
         "handle": "manytomany",
-        "schemaVersion": "1.0.2",
-        "changelogUrl": "https://raw.githubusercontent.com/page-8/craft-manytomany/master/CHANGELOG.md"
+        "changelogUrl": "https://raw.githubusercontent.com/verbb/many-to-many/craft-3/CHANGELOG.md",
+        "class": "verbb\\manytomany\\ManyToMany"
     }
 }

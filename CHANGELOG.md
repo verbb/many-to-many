@@ -1,25 +1,34 @@
-# Many to Many Field Type Changelog
+# Changelog
 
-All notable changes to this project will be documented in this file.
+## 2.0.0 - 2022-11-24
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
+> {note} The plugin’s package name has changed to `verbb/many-to-many`. Many To Many will need be updated to 2.0 from a terminal, by running `composer require verbb/many-to-many && composer remove page-8/craft-manytomany`.
+
+### Changed
+- Migration to `verbb/many-to-many`.
+- Now requires Craft 3.7+.
 
 ## 1.0.2.2 - 2018-05-17
+
 ### Fixed
-- Injected Javascript HTML should reflect updated template HTML
+- Injected Javascript HTML should reflect updated template HTML.
 
 ## 1.0.2.1 - 2018-05-15
+
 ### Added
-- Update input template to better display elements
+- Update input template to better display elements.
 
 ## 0.1.2 - 2016-06-15
+
 ### Added
 - Translatable text.
 
 ## 0.1.1
+
 ### Added
 - Optimized the cache control. Instead of clearing all Entry types from the cache, just clears records related to the changed element.
 
-##0.1.0
+## 0.1.0
+
 ### Added
 - Initial Release.

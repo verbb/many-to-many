@@ -1,16 +1,15 @@
 <?php
-
-namespace Page8\ManyToMany\assetbundles\manytomanyfield;
+namespace verbb\manytomany\assetbundles\field;
 
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset;
 
 class ManyToManyFieldAsset extends AssetBundle
 {
-    /**
-     * @inheritdoc
-     */
-    public function init()
+    // Public Methods
+    // =========================================================================
+
+    public function init(): void
     {
         $this->sourcePath = __DIR__ . '/dist';
 

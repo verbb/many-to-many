@@ -1,55 +1,47 @@
 <?php
+namespace verbb\manytomany\fields;
 
-namespace Page8\ManyToMany\fields;
+use verbb\manytomany\ManyToMany;
 
 use Craft;
+use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\elements\Entry;
-use Page8\ManyToMany\Plugin;
-use craft\base\ElementInterface;
+use craft\helpers\Html;
 
-/**
- * @property string $settingsHtml
- */
 class ManyToManyField extends Field
 {
-    /**
-     * Section source
-     * @var array
-     */
-    public $source;
+    // Static Methods
+    // =========================================================================
 
-    /**
-     * Associated field type
-     * @var string
-     */
-    public $singleField;
-
-    /**
-     * Get display name for field type.
-     *
-     * @return string
-     */
     public static function displayName(): string
     {
         return Craft::t('manytomany', 'Many to Many');
     }
 
-    /**
-     * Declare whether or not this field stores data in its own column.
-     *
-     * @return bool
-     */
     public static function hasContentColumn(): bool
     {
         return false;
     }
 
+
+    // Properties
+    // =========================================================================
+
     /**
-     * Define settings.
-     *
-     * @return array
+     * @var array
      */
+    public $source = [];
+
+    /**
+     * @var null|string
+     */
+    public $singleField = null;
+
+
+    // Public Methods
+    // =========================================================================
+
     public function settingsAttributes(): array
     {
         $attributes = parent::settingsAttributes();
@@ -59,15 +51,10 @@ class ManyToManyField extends Field
         return $attributes;
     }
 
-    /**
-     * Get template for field type settings.
-     *
-     * @return string
-     */
     public function getSettingsHtml(): string
     {
-        $allSections = Craft::$app->sections->getAllSections();
-        $allFields = Craft::$app->fields->getAllFields() ?? [];
+        $allSections = Craft::$app->getSections()->getAllSections();
+        $allFields = Craft::$app->getFields()->getAllFields() ?? [];
 
         // Group the Sections into an array
         $elements = [];
@@ -86,94 +73,74 @@ class ManyToManyField extends Field
             $this->source = ['type' => '', 'value' => ''];
         }
 
-        return Craft::$app->view->renderTemplate(
-            'manytomany/_settings', [
-                'source' => $this->source,
-                'singleField' => $this->singleField,
-                'elements' => $elements,
-                'fields' => $fields,
-            ]
-        );
+        return Craft::$app->getView()->renderTemplate('manytomany/field/settings', [
+            'source' => $this->source,
+            'singleField' => $this->singleField,
+            'elements' => $elements,
+            'fields' => $fields,
+        ]);
     }
 
-    /**
-     * Product input HTML for edit pages.
-     *
-     * @param mixed $value
-     * @param ElementInterface|null $element
-     * @return string
-     */
     public function getInputHtml($value, ElementInterface $element = null): string
     {
-        $plugin = Plugin::getInstance();
-        $service = $plugin->service;
+        $view = Craft::$app->getView();
 
         // Validate settings
         if (empty($this->source)) {
-            return Craft::t('manytomany', 'To use the {pluginName} plugin you need to set a source.',
-                ['pluginName' => $plugin->name]);
+            return Craft::t('manytomany', 'To use the Many to Many plugin you need to set a source.');
         }
 
         if (empty($this->singleField)) {
-            return Craft::t('manytomany',
-                'To use the {pluginName} plugin you need associate it with a related field.',
-                ['pluginName' => $plugin->name]);
+            return Craft::t('manytomany', 'To use the Many to Many plugin you need associate it with a related field.');
         }
 
-        $singleFieldModel = Craft::$app->fields->getFieldById($this->singleField);
-        if ($singleFieldModel->getIsTranslatable()) {
-            return Craft::t('manytomany',
-                'The {pluginName} plugin does not currently work with localized content.',
-                ['pluginName' => $plugin->name]);
+        $singleFieldModel = Craft::$app->getFields()->getFieldById($this->singleField);
+
+        if ($singleFieldModel && $singleFieldModel->getIsTranslatable()) {
+            return Craft::t('manytomany', 'The Many to Many plugin does not currently work with localized content.');
         }
 
-        // For this iteration of the plugin, everything is a SECTION, but it's setup so it can be
+        // For this iteration of the plugin, everything is a SECTION, but it's setup, so it can be
         // refactored in the future to allow for multiple types
-
-        if (!is_object($element) || $element->refHandle() != 'entry') {
-            return Craft::t('manytomany',
-                'For this version of the {pluginName} plugin, you can only use this field with Entries.',
-                ['pluginName' => $plugin->name]);
+        if (!($element instanceof Entry)) {
+            return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
         }
 
         /** @var Entry $element */
-        $relatedSection = Craft::$app->sections->getSectionById($this->source['value']);
+        $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
 
         // Get all the entries that this has already been attached to
-        $relatedEntries = $service->getRelatedEntries($element, $relatedSection, $this->singleField);
+        $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
 
         // Put related Entries into an array that can be consumed by the JavaScript popup window
         $nonSelectable = [];
+
         if (!empty($relatedEntries)) {
             foreach ($relatedEntries as $relatedEntry) {
                 $nonSelectable[] = $relatedEntry->id;
             }
         }
+
         $nonSelectable = implode(',', $nonSelectable);
 
-        $id = Craft::$app->view->formatInputId($this->handle);
-        $namespacedId = Craft::$app->view->namespaceInputId($id);
+        $id = Html::id($this->handle);
+        $namespacedId = $view->namespaceInputId($id);
 
-        return Craft::$app->view->renderTemplate('manytomany/_input', [
+        return $view->renderTemplate('manytomany/field/input', [
             'name' => $this->handle,
             'value' => $value,
             'id' => $namespacedId,
             'current' => $relatedEntries,
-            'section' => !empty($relatedSection->uid) ? $relatedSection->uid : $relatedSection->id,
+            'section' => $relatedSection->uid ?? null,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
-            'nameSpace' => Craft::$app->view->getNamespace(),
+            'nameSpace' => $view->getNamespace(),
         ]);
     }
 
-    /**
-     * Save relationships on external field.
-     *
-     * @inheritdoc
-     */
-    public function afterElementSave(ElementInterface $element, bool $isNew)
+    public function afterElementSave(ElementInterface $element, bool $isNew): void
     {
-        Plugin::getInstance()->service->saveRelationship($this, $element);
+        ManyToMany::$plugin->getService()->saveRelationship($this, $element);
 
         parent::afterElementSave($element, $isNew);
     }

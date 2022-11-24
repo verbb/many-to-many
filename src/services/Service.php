@@ -1,17 +1,20 @@
 <?php
+namespace verbb\manytomany\services;
 
-namespace Page8\ManyToMany\services;
+use verbb\manytomany\fields\ManyToManyField;
 
 use Craft;
+use craft\base\Component;
+use craft\base\ElementInterface;
 use craft\db\Query;
 use craft\elements\Entry;
 use craft\models\Section;
-use craft\base\Component;
-use craft\base\ElementInterface;
-use Page8\ManyToMany\fields\ManyToManyField;
 
-class ManyToManyService extends Component
+class Service extends Component
 {
+    // Public Methods
+    // =========================================================================
+
     /**
      * Returns related entries from an element limited to a section.
      *
@@ -28,7 +31,6 @@ class ManyToManyService extends Component
         $query->section = $section;
         $query->limit = null;
         $query->status = null;
-        $query->enabledForSite = null;
         $query->siteId = $element->siteId;
         $query->relatedTo = [
             'targetElement' => $element,
@@ -44,13 +46,13 @@ class ManyToManyService extends Component
      * @param ManyToManyField $fieldType
      * @param ElementInterface $element
      */
-    public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element)
+    public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element): void
     {
         // Get element ID of the current element
         $targetId = $element->getId();
 
         // Delete cache related to this element ID
-        Craft::$app->templateCaches->deleteCachesByElementId($targetId);
+        Craft::$app->getElements()->invalidateCachesForElement($element);
 
         // Get submitted field value
         $content = $element->getFieldValue($fieldType->handle);
@@ -88,7 +90,7 @@ class ManyToManyService extends Component
                     'sortOrder' => 1,
                 ];
 
-                Craft::$app->db->createCommand()->insert('{{%relations}}', $columns)->execute();
+                Craft::$app->getDb()->createCommand()->insert('{{%relations}}', $columns)->execute();
             }
         }
 
@@ -106,7 +108,7 @@ class ManyToManyService extends Component
                 ':targetId' => $targetId,
             ];
 
-            Craft::$app->db->createCommand()->delete('{{%relations}}', $oldRelationConditions,
+            Craft::$app->getDb()->createCommand()->delete('{{%relations}}', $oldRelationConditions,
                 $oldRelationParams)->execute();
         }
     }
