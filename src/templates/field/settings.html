@@ -6,7 +6,8 @@
     id: 'source',
     name: 'source[value]',
     options: elements,
-    value: source.value,
+    value: field.source.value,
+    errors: field.getErrors('source'),
 }) }}
 
 {{ forms.hidden({
@@ -20,5 +21,16 @@
     id: 'singleField',
     name: 'singleField',
     options: fields,
-    value: singleField,
+    value: field.singleField,
+    errors: field.getErrors('singleField'),
+}) }}
+
+{{ forms.textField({
+    label: 'Selection Label' | t('app'),
+    instructions: 'Enter the text you want to appear on the selection input.' | t('app'),
+    id: 'selectionLabel',
+    name: 'selectionLabel',
+    value: field.selectionLabel,
+    placeholder: field.defaultSelectionLabel(),
+    errors: field.getErrors('selectionLabel'),
 }) }}

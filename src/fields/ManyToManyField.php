@@ -25,6 +25,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return false;
     }
 
+    public static function defaultSelectionLabel(): string
+    {
+        return Craft::t('app', 'Add an entry');
+    }
+
 
     // Properties
     // =========================================================================
@@ -38,6 +43,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
      * @var null|string
      */
     public $singleField = null;
+
+    /**
+     * @var string
+     */
+    public $selectionLabel;
 
 
     // Public Methods
@@ -75,8 +85,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         }
 
         return Craft::$app->getView()->renderTemplate('manytomany/field/settings', [
-            'source' => $this->source,
-            'singleField' => $this->singleField,
+            'field' => $this,
             'elements' => $elements,
             'fields' => $fields,
         ]);
@@ -136,6 +145,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
             'namespace' => $view->getNamespace(),
+            'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
         ]);
     }
 
