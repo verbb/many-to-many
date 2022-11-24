@@ -1,6 +1,7 @@
 <?php
 namespace verbb\manytomany\base;
 
+use verbb\manytomany\ManyToMany;
 use verbb\manytomany\services\Service;
 
 use Craft;
@@ -14,7 +15,7 @@ trait PluginTrait
     // Static Properties
     // =========================================================================
 
-    public static $plugin;
+    public static ManyToMany $plugin;
 
 
     // Public Methods

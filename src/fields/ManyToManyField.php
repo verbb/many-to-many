@@ -37,26 +37,15 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     // Properties
     // =========================================================================
 
-    /**
-     * @var array
-     */
-    public $source = [];
-
-    /**
-     * @var null|string
-     */
-    public $singleField = null;
-
-    /**
-     * @var string
-     */
-    public $selectionLabel;
+    public array $source = [];
+    public ?string $singleField = null;
+    public ?string $selectionLabel = null;
 
 
     // Public Methods
     // =========================================================================
 
-    public function normalizeValue($value, ElementInterface $element = null)
+    public function normalizeValue($value, ElementInterface $element = null): mixed
     {
         $sourceValue = $this->source['value'] ?? null;
 
