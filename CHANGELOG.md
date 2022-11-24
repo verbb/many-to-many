@@ -4,9 +4,16 @@
 
 > {note} The plugin’s package name has changed to `verbb/many-to-many`. Many To Many will need be updated to 2.0 from a terminal, by running `composer require verbb/many-to-many && composer remove page-8/craft-manytomany`.
 
+### Added
+- Add GraphQL support for querying the field.
+- Add “Selection Label” to field settings.
+- Add preview in CP content index table. (thanks @svale).
+
 ### Changed
 - Migration to `verbb/many-to-many`.
 - Now requires Craft 3.7+.
+- Update input.js to use boolean value. (thanks @matthisamoto).
+- Refactor field to use `normalizeValue` so it has a proper value for front-end, control panel, element index, and GraphQL.
 
 ## 1.0.2.2 - 2018-05-17
 
