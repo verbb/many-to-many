@@ -171,7 +171,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return '';
     }
 
-    public function getContentGqlType()
+    public function getContentGqlType(): array
     {
         return [
             'name' => $this->handle,
