@@ -16,7 +16,7 @@
                     {% for cur in current %}
                         <div class="element small removable hasstatus unselectable" id="{{ name }}-manyToMany-{{ cur.id }}">
                             <input type="hidden" name="{{ name }}[add][]" value="{{ cur.id }}">
-                            <a class="delete icon manyToManyDelete" data-nameSpace="{{ nameSpace }}" data-name="{{ name }}"  data-remove="{{ cur.id }}" title="Remove"></a>
+                            <a class="delete icon manyToManyDelete" data-namespace="{{ namespace }}" data-name="{{ name }}"  data-remove="{{ cur.id }}" title="Remove"></a>
                             <span class="status {{ cur.status }}"></span>
                             <a href="{{ cur.cpEditUrl }}" class="label">
                                 <span class="title">{{ cur.title }}</span>
@@ -25,7 +25,7 @@
                     {% endfor %}
                 </div>
 
-                <div class="btn add icon dashed addManytoMany" data-name="{{ name }}" data-nameSpace="{{ nameSpace }}" data-section="{{ section }}" data-target="mTm{{ name }}" tabindex="0">{{ "Add an entry"|t }}</div>
+                <div class="btn add icon dashed addManytoMany" data-name="{{ name }}" data-namespace="{{ namespace }}" data-section="{{ section }}" data-target="mTm{{ name }}" tabindex="0">{{ "Add an entry"|t }}</div>
             </div>
         </div>
     </div>

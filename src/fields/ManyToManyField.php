@@ -135,7 +135,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'section' => $relatedSection->uid ?? null,
             'nonSelectable' => $nonSelectable,
             'singleField' => $this->singleField,
-            'nameSpace' => $view->getNamespace(),
+            'namespace' => $view->getNamespace(),
         ]);
     }
 
