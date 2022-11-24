@@ -6,10 +6,11 @@ use verbb\manytomany\ManyToMany;
 use Craft;
 use craft\base\ElementInterface;
 use craft\base\Field;
+use craft\base\PreviewableFieldInterface;
 use craft\elements\Entry;
 use craft\helpers\Html;
 
-class ManyToManyField extends Field
+class ManyToManyField extends Field implements PreviewableFieldInterface
 {
     // Static Methods
     // =========================================================================
@@ -143,5 +144,21 @@ class ManyToManyField extends Field
         ManyToMany::$plugin->getService()->saveRelationship($this, $element);
 
         parent::afterElementSave($element, $isNew);
+    }
+
+    public function getTableAttributeHtml($value, ElementInterface $element): string
+    {
+        $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
+        $relatedEntries = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+
+        $element = $relatedEntries[0] ?? null;
+
+        if ($element) {
+            return Craft::$app->getView()->renderTemplate('_elements/element', [
+                'element' => $element,
+            ]);
+        }
+
+        return '';
     }
 }
