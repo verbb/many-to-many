@@ -15,7 +15,7 @@ class ManyToMany extends Plugin
     // Properties
     // =========================================================================
 
-    public $schemaVersion = '1.0.2';
+    public $schemaVersion = '2.0.0';
 
 
     // Traits
