@@ -61,7 +61,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         $sourceValue = $this->source['value'] ?? null;
 
         if ($element && $sourceValue && $this->singleField) {
-            $relatedSection = Craft::$app->getSections()->getSectionById($sourceValue);
+            $relatedSection = Craft::$app->getSections()->getSectionByUid($sourceValue);
 
             // Get all the entries that this has already been attached to
             if ($relatedSection) {
@@ -78,13 +78,13 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         $fields = [];
 
         // Group the Sections into an array
-        foreach (Craft::$app->getSections()->getAllSections() as $element) {
-            $elements[$element->id] = $element->name;
+        foreach (Craft::$app->getSections()->getAllSections() as $section) {
+            $elements[$section->uid] = $section->name;
         }
 
         // Group Field Types into an array
         foreach (Craft::$app->getFields()->getAllFields() as $field) {
-            $fields[$field->id] = $field->name;
+            $fields[$field->uid] = $field->name;
         }
 
         // Get the Section Source
@@ -112,7 +112,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             return Craft::t('manytomany', 'To use the Many to Many plugin you need associate it with a related field.');
         }
 
-        $singleFieldModel = Craft::$app->getFields()->getFieldById($this->singleField);
+        $singleFieldModel = Craft::$app->getFields()->getFieldByUid($this->singleField);
 
         if ($singleFieldModel && $singleFieldModel->getIsTranslatable()) {
             return Craft::t('manytomany', 'The Many to Many plugin does not currently work with localized content.');
@@ -124,7 +124,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
         }
 
-        $relatedSection = Craft::$app->getSections()->getSectionById($this->source['value']);
+        $relatedSection = Craft::$app->getSections()->getSectionByUid($this->source['value']);
 
         // Put related Entries into an array that can be consumed by the JavaScript popup window
         $nonSelectable = [];

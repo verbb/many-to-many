@@ -7,7 +7,9 @@ use Craft;
 use craft\base\Component;
 use craft\base\ElementInterface;
 use craft\db\Query;
+use craft\db\Table;
 use craft\elements\Entry;
+use craft\helpers\Db;
 use craft\models\Section;
 
 class Service extends Component
@@ -24,9 +26,11 @@ class Service extends Component
      *
      * @return Entry[]
      */
-    public function getRelatedEntries(ElementInterface $element, Section $section, string $field): array
+    public function getRelatedEntries(ElementInterface $element, Section $section, string $fieldUid): array
     {
         $query = Entry::find();
+
+        $fieldId = Db::idByUid(Table::FIELDS, $fieldUid);
 
         $query->section = $section;
         $query->limit = null;
@@ -34,7 +38,7 @@ class Service extends Component
         $query->siteId = $element->siteId;
         $query->relatedTo = [
             'targetElement' => $element,
-            'field' => $field,
+            'field' => $fieldId,
         ];
 
         return $query->all();
@@ -61,7 +65,7 @@ class Service extends Component
         // fieldId  --> We define this in the Field settings when creating it
         // sourceId --> The elementIds that create the relationship initially. This is currently stored in the $content array
         // targetId --> $elementId, this is the reverse of the relationship
-        $fieldId = $fieldType->singleField;
+        $fieldId = Db::idByUid(Table::FIELDS, $fieldType->singleField);
 
         // The relationships we either want to add or leave
         $toAdd = $content['add'] ?? [];
