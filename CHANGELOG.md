@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 - 2022-11-30
+
+### Fixed
+- Fix fields not migrating to new package name correctly.
+
 ## 2.0.0 - 2022-11-24
 
 > {note} The plugin’s package name has changed to `verbb/many-to-many`. Many To Many will need be updated to 2.0 from a terminal, by running `composer require verbb/many-to-many && composer remove page-8/craft-manytomany`.
