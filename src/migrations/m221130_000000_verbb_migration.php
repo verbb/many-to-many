@@ -17,7 +17,7 @@ class m221130_000000_verbb_migration extends Migration
 
         // Don't make the same config changes twice
         $projectConfig = Craft::$app->getProjectConfig();
-        $schemaVersion = $projectConfig->get('plugins.single-cat.schemaVersion', true);
+        $schemaVersion = $projectConfig->get('plugins.manytomany.schemaVersion', true);
 
         if (version_compare($schemaVersion, '2.0.0', '>=')) {
             return true;
