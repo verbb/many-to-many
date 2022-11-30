@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.1 - 2022-11-30
+
+### Fixed
+- Fix fields not migrating to new package name correctly.
+
 ## 3.0.0 - 2022-11-24
 
 ### Changed
