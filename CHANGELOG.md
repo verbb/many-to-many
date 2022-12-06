@@ -16,6 +16,11 @@
 - Now requires PHP `8.0.2+`.
 - Now requires Craft `4.0.0+`.
 
+## 2.0.2 - 2022-12-06
+
+### Fixed
+- Migrate field settings to uid instead of ids.
+
 ## 2.0.1 - 2022-11-30
 
 ### Fixed
