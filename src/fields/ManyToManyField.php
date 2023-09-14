@@ -52,6 +52,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
      */
     public $selectionLabel;
 
+    /**
+     * @var array
+     */
+    public $rawValue = [];
+
 
     // Public Methods
     // =========================================================================
@@ -59,6 +64,9 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     public function normalizeValue($value, ElementInterface $element = null)
     {
         $sourceValue = $this->source['value'] ?? null;
+
+        // Save the raw value for add/delete elements to use in `saveRelationship()`
+        $this->rawValue = $value;
 
         if ($element && $sourceValue && $this->singleField) {
             $relatedSection = Craft::$app->getSections()->getSectionByUid($sourceValue);
