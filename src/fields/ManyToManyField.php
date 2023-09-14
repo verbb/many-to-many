@@ -40,11 +40,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     public array $source = [];
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
-
-    /**
-     * @var array
-     */
-    public $rawValue = [];
+    public array $rawValue = [];
 
 
     // Public Methods
