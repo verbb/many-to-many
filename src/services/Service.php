@@ -52,14 +52,14 @@ class Service extends Component
      */
     public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element): void
     {
-        // Get element ID of the current element
-        $targetId = $element->getId();
+        // Get element ID of the current element. Be sure to use the canonicalId when dealing with autosave
+        $targetId = $element->getCanonicalId();
 
         // Delete cache related to this element ID
         Craft::$app->getElements()->invalidateCachesForElement($element);
 
-        // Get submitted field value
-        $content = $element->getFieldValue($fieldType->handle);
+        // Get submitted field value - note that we're fetching `rawValue` not the normalized value
+        $content = $fieldType->rawValue;
 
         // There are 3 Items we need to make up a unique relationship in the craft_relations table:
         // fieldId  --> We define this in the Field settings when creating it
