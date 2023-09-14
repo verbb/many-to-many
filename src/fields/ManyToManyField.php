@@ -51,7 +51,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         $sourceValue = $this->source['value'] ?? null;
 
         // Save the raw value for add/delete elements to use in `saveRelationship()`
-        $this->rawValue = $value;
+        $this->rawValue = $value ?? [];
 
         if ($element && $sourceValue && $this->singleField) {
             $relatedSection = Craft::$app->getSections()->getSectionByUid($sourceValue);
