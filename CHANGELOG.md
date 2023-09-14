@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.3 - 2023-09-14
+
+### Fixed
+- Fix inverse relations not working.
+
 ## 3.0.2 - 2022-12-06
 
 ### Fixed
