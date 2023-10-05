@@ -39,7 +39,7 @@
     },
     "autoload": {
         "psr-4": {
-          "verbb\\manytomany\\": "src/"
+            "verbb\\manytomany\\": "src/"
         }
     },
     "extra": {
