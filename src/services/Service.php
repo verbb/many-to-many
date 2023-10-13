@@ -59,7 +59,10 @@ class Service extends Component
         Craft::$app->getElements()->invalidateCachesForElement($element);
 
         // Get submitted field value - note that we're fetching `rawValue` not the normalized value
-        $content = $fieldType->rawValue;
+        // $content = $fieldType->rawValue;
+        $cacheKey = implode('--', ['many-to-many', $fieldType->handle, $element->uid]);
+        $content = Craft::$app->getCache()->get($cacheKey);
+        Craft::$app->getCache()->delete($cacheKey);
 
         // There are 3 Items we need to make up a unique relationship in the craft_relations table:
         // fieldId  --> We define this in the Field settings when creating it
@@ -74,46 +77,50 @@ class Service extends Component
         $toDelete = $content['delete'] ?? [];
 
         // First handle adding or updating the relationships that have to exist
-        foreach ($toAdd as $sourceId) {
-            // Check if relation exists
-            $exists = (new Query())
-                ->select('id')
-                ->from('{{%relations}}')
-                ->where('[[fieldId]] = :fieldId', [':fieldId' => $fieldId])
-                ->andWhere('[[sourceId]] = :sourceId', [':sourceId' => $sourceId])
-                ->andWhere('[[targetId]] = :targetId', [':targetId' => $targetId])
-                ->exists();
+        if (is_array($toAdd)) {
+            foreach ($toAdd as $sourceId) {
+                // Check if relation exists
+                $exists = (new Query())
+                    ->select('id')
+                    ->from('{{%relations}}')
+                    ->where('[[fieldId]] = :fieldId', [':fieldId' => $fieldId])
+                    ->andWhere('[[sourceId]] = :sourceId', [':sourceId' => $sourceId])
+                    ->andWhere('[[targetId]] = :targetId', [':targetId' => $targetId])
+                    ->exists();
 
-            // Create relation if it does not exist
-            if (!$exists) {
-                $columns = [
-                    'fieldId' => $fieldId,
-                    'sourceId' => $sourceId,
-                    'sourceSiteId' => null,
-                    'targetId' => $targetId,
-                    'sortOrder' => 1,
-                ];
+                // Create relation if it does not exist
+                if (!$exists) {
+                    $columns = [
+                        'fieldId' => $fieldId,
+                        'sourceId' => $sourceId,
+                        'sourceSiteId' => null,
+                        'targetId' => $targetId,
+                        'sortOrder' => 1,
+                    ];
 
-                Craft::$app->getDb()->createCommand()->insert('{{%relations}}', $columns)->execute();
+                    Craft::$app->getDb()->createCommand()->insert('{{%relations}}', $columns)->execute();
+                }
             }
         }
 
         // Now, delete the existing relationships if the user removed them.
-        foreach ($toDelete as $sourceId) {
-            $oldRelationConditions = [
-                'and',
-                '[[fieldId]] = :fieldId',
-                '[[sourceId]] = :sourceId',
-                '[[targetId]] = :targetId',
-            ];
-            $oldRelationParams = [
-                ':fieldId' => $fieldId,
-                ':sourceId' => $sourceId,
-                ':targetId' => $targetId,
-            ];
+        if (is_array($toDelete)) {
+            foreach ($toDelete as $sourceId) {
+                $oldRelationConditions = [
+                    'and',
+                    '[[fieldId]] = :fieldId',
+                    '[[sourceId]] = :sourceId',
+                    '[[targetId]] = :targetId',
+                ];
+                $oldRelationParams = [
+                    ':fieldId' => $fieldId,
+                    ':sourceId' => $sourceId,
+                    ':targetId' => $targetId,
+                ];
 
-            Craft::$app->getDb()->createCommand()->delete('{{%relations}}', $oldRelationConditions,
-                $oldRelationParams)->execute();
+                Craft::$app->getDb()->createCommand()->delete('{{%relations}}', $oldRelationConditions,
+                    $oldRelationParams)->execute();
+            }
         }
     }
 }

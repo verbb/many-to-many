@@ -2,33 +2,27 @@
 
 {% do view.registerAssetBundle('verbb\\manytomany\\assetbundles\\field\\ManyToManyFieldAsset') %}
 
-<div class="mTm-modal-hide">
-    {{ forms.hidden({
-        name: name ~ 'nonSelectable',
-        id: name ~ 'nonSelectable',
-        value: nonSelectable,
+{{ hiddenInput(name, '') }}
+
+<div class="js-mtm-field">
+    {{ forms.elementSelect({
+        name: name ~ '[add]',
+        elementType: 'craft\\elements\\Entry',
+        sources: section ? ['section:' ~ section] : [],
+        selectionLabel: selectionLabel,
+        class: 'js-mtm-element-select',
+        elements: value,
     }) }}
 
-    <div class="input ltr">
-        <div class="elementselect">
-            <div class="elements">
-                <div class="mTm{{ name }}">
-                    {% for cur in current %}
-                        <div class="element small removable hasstatus unselectable" id="{{ name }}-manyToMany-{{ cur.id }}">
-                            <input type="hidden" name="{{ name }}[add][]" value="{{ cur.id }}">
-                            <a class="delete icon manyToManyDelete" data-namespace="{{ namespace }}" data-name="{{ name }}"  data-remove="{{ cur.id }}" title="Remove"></a>
-                            <span class="status {{ cur.status }}"></span>
-                            <a href="{{ cur.cpEditUrl }}" class="label">
-                                <span class="title">{{ cur.title }}</span>
-                            </a>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <div class="btn add icon dashed addManytoMany" data-name="{{ name }}" data-namespace="{{ namespace }}" data-section="{{ section }}" data-target="mTm{{ name }}" tabindex="0">{{ selectionLabel }}</div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="{{ name }}-toDelete"></div>
+    <div class="js-mtm-delete"></div>
 </div>
+
+{% set jsSettings = {
+    id: id | namespaceInputId,
+    name: name | namespaceInputName,
+    elementIds: value | map(v => v.id),
+} %}
+
+{% js %}
+    new Craft.ManyToMany.Field({{ jsSettings | json_encode | raw }});
+{% endjs %}

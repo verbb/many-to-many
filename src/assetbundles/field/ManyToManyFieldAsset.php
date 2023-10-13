@@ -18,7 +18,7 @@ class ManyToManyFieldAsset extends AssetBundle
         ];
 
         $this->js = [
-            'input.js',
+            'many-to-many.js',
         ];
 
         parent::init();

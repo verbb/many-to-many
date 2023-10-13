@@ -23,9 +23,9 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return Craft::t('manytomany', 'Many to Many');
     }
 
-    public static function hasContentColumn(): bool
+    public static function dbType(): array|string|null
     {
-        return false;
+        return null;
     }
 
     public static function defaultSelectionLabel(): string
@@ -40,21 +40,23 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     public array $source = [];
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
-    public array $rawValue = [];
 
 
     // Public Methods
     // =========================================================================
 
-    public function normalizeValue($value, ElementInterface $element = null): mixed
+    public function normalizeValue(mixed $value, ElementInterface $element = null): mixed
     {
         $sourceValue = $this->source['value'] ?? null;
 
-        // Save the raw value for add/delete elements to use in `saveRelationship()`
-        $this->rawValue = $value ?? [];
+        // Save the raw value for add/delete elements to use in `saveRelationship()`. We have to use the cache
+        // as this isn't retained in `afterElementSave()`, and we want to wait until after the element has saved
+        // to save the relationship, in case something went wrong with the element saving.
+        $cacheKey = implode('--', ['many-to-many', $this->handle, $element->uid]);
+        Craft::$app->getCache()->set($cacheKey, ($value ?? []));
 
         if ($element && $sourceValue && $this->singleField) {
-            $relatedSection = Craft::$app->getSections()->getSectionByUid($sourceValue);
+            $relatedSection = Craft::$app->getEntries()->getSectionByUid($sourceValue);
 
             // Get all the entries that this has already been attached to
             if ($relatedSection) {
@@ -71,7 +73,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         $fields = [];
 
         // Group the Sections into an array
-        foreach (Craft::$app->getSections()->getAllSections() as $section) {
+        foreach (Craft::$app->getEntries()->getAllSections() as $section) {
             $elements[$section->uid] = $section->name;
         }
 
@@ -92,7 +94,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         ]);
     }
 
-    public function getInputHtml($value, ElementInterface $element = null): string
+    protected function inputHtml(mixed $value, ?ElementInterface $element, bool $inline): string
     {
         $view = Craft::$app->getView();
 
@@ -107,7 +109,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
 
         $singleFieldModel = Craft::$app->getFields()->getFieldByUid($this->singleField);
 
-        if ($singleFieldModel && $singleFieldModel->getIsTranslatable()) {
+        if ($singleFieldModel && $singleFieldModel->getIsTranslatable($element)) {
             return Craft::t('manytomany', 'The Many to Many plugin does not currently work with localized content.');
         }
 
@@ -117,31 +119,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
         }
 
-        $relatedSection = Craft::$app->getSections()->getSectionByUid($this->source['value']);
-
-        // Put related Entries into an array that can be consumed by the JavaScript popup window
-        $nonSelectable = [];
-
-        if (!empty($value)) {
-            foreach ($value as $relatedEntry) {
-                $nonSelectable[] = $relatedEntry->id;
-            }
-        }
-
-        $nonSelectable = implode(',', $nonSelectable);
-
-        $id = Html::id($this->handle);
-        $namespacedId = $view->namespaceInputId($id);
-
         return $view->renderTemplate('manytomany/field/input', [
             'name' => $this->handle,
             'value' => $value,
-            'id' => $namespacedId,
-            'current' => $value,
-            'section' => $relatedSection->uid ?? null,
-            'nonSelectable' => $nonSelectable,
-            'singleField' => $this->singleField,
-            'namespace' => $view->getNamespace(),
+            'id' => Html::id($this->handle),
+            'section' => $this->source['value'] ?? null,
             'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
         ]);
     }
@@ -153,7 +135,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         parent::afterElementSave($element, $isNew);
     }
 
-    public function getTableAttributeHtml($value, ElementInterface $element): string
+    public function getPreviewHtml($value, ElementInterface $element): string
     {
         if ($value) {
             return Craft::$app->getView()->renderTemplate('_elements/element', [
