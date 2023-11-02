@@ -11,6 +11,7 @@ use craft\elements\Entry;
 use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
 use craft\gql\resolvers\elements\Entry as EntryResolver;
+use craft\helpers\Cp;
 use craft\helpers\Gql as GqlHelper;
 use craft\services\Gql as GqlService;
 use craft\helpers\ArrayHelper;
