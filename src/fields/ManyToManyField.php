@@ -159,16 +159,10 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         parent::afterElementSave($element, $isNew);
     }
 
-    public function getTableAttributeHtml($value, ElementInterface $element): string
-    {
-        if ($value) {
-            return Craft::$app->getView()->renderTemplate('_elements/element', [
-                'element' => $value[0],
-            ]);
-        }
-
-        return '';
-    }
+	public function getTableAttributeHtml($value, ElementInterface $element): string
+	{
+		return Cp::elementPreviewHtml($value);
+	}
 
     public function getContentGqlType(): array
     {
