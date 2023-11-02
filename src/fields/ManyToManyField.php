@@ -161,7 +161,7 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
 
 	public function getTableAttributeHtml($value, ElementInterface $element): string
 	{
-		return Cp::elementPreviewHtml($value);
+        return Cp::elementPreviewHtml($value);
 	}
 
     public function getContentGqlType(): array
