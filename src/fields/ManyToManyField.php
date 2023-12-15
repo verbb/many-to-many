@@ -40,6 +40,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return Craft::t('app', 'Add an entry');
     }
 
+    public static function valueType(): string
+    {
+        return sprintf('%s[]', Entry::class);
+    }
+
 
     // Properties
     // =========================================================================
