@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.4 - 2023-10-05
+
+### Fixed
+- Fix GraphQL queries not allowing arguments on field.
+
 ## 3.0.3 - 2023-09-14
 
 ### Fixed

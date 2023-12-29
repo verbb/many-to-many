@@ -8,10 +8,17 @@ use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\base\PreviewableFieldInterface;
 use craft\elements\Entry;
+use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
+use craft\gql\resolvers\elements\Entry as EntryResolver;
+use craft\helpers\Cp;
+use craft\helpers\Gql as GqlHelper;
+use craft\services\Gql as GqlService;
+use craft\helpers\ArrayHelper;
 use craft\helpers\Html;
 
 use GraphQL\Type\Definition\Type;
+
 
 class ManyToManyField extends Field implements PreviewableFieldInterface
 {
@@ -31,6 +38,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     public static function defaultSelectionLabel(): string
     {
         return Craft::t('app', 'Add an entry');
+    }
+
+    public static function valueType(): string
+    {
+        return sprintf('%s[]', Entry::class);
     }
 
 
@@ -137,20 +149,25 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
 
     public function getPreviewHtml($value, ElementInterface $element): string
     {
-        if ($value) {
-            return Craft::$app->getView()->renderTemplate('_elements/element', [
-                'element' => $value[0],
-            ]);
-        }
-
-        return '';
+        return Cp::elementPreviewHtml($value);
     }
 
     public function getContentGqlType(): array
     {
         return [
             'name' => $this->handle,
-            'type' => Type::listOf(EntryInterface::getType()),
+            'type' => Type::nonNull(Type::listOf(EntryInterface::getType())),
+            'args' => EntryArguments::getArguments(),
+            'resolve' => function($source, $arguments, $context, $resolveInfo) {
+                // Convert the already-resolved entries to an entries query. This is because `normalizeValue`
+                // doesn't return the traditional EntryElementQuery value.
+                $target = $source->{$this->handle};
+                $arguments['id'] = ArrayHelper::getColumn($target, 'id');
+                $arguments['siteId'] = $target[0]->siteId ?? null;
+
+                return EntryResolver::resolve(null, $arguments, $context, $resolveInfo);
+            },
+            'complexity' => GqlHelper::relatedArgumentComplexity(GqlService::GRAPHQL_COMPLEXITY_EAGER_LOAD),
         ];
     }
 }
