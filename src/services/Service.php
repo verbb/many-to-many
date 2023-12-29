@@ -98,7 +98,7 @@ class Service extends Component
                         'sortOrder' => 1,
                     ];
 
-                    Craft::$app->getDb()->createCommand()->insert('{{%relations}}', $columns)->execute();
+                    Db::->insert('{{%relations}}', $columns);
                 }
             }
         }
@@ -118,8 +118,7 @@ class Service extends Component
                     ':targetId' => $targetId,
                 ];
 
-                Craft::$app->getDb()->createCommand()->delete('{{%relations}}', $oldRelationConditions,
-                    $oldRelationParams)->execute();
+                Db::->delete('{{%relations}}', $oldRelationConditions, $oldRelationParams);
             }
         }
     }
