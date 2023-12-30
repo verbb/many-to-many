@@ -106,6 +106,41 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         ]);
     }
 
+    public function afterElementSave(ElementInterface $element, bool $isNew): void
+    {
+        ManyToMany::$plugin->getService()->saveRelationship($this, $element);
+
+        parent::afterElementSave($element, $isNew);
+    }
+
+    public function getPreviewHtml($value, ElementInterface $element): string
+    {
+        return Cp::elementPreviewHtml($value);
+    }
+
+    public function getContentGqlType(): array
+    {
+        return [
+            'name' => $this->handle,
+            'type' => Type::nonNull(Type::listOf(EntryInterface::getType())),
+            'args' => EntryArguments::getArguments(),
+            'resolve' => function($source, $arguments, $context, $resolveInfo) {
+                // Convert the already-resolved entries to an entries query. This is because `normalizeValue`
+                // doesn't return the traditional EntryElementQuery value.
+                $target = $source->{$this->handle};
+                $arguments['id'] = ArrayHelper::getColumn($target, 'id');
+                $arguments['siteId'] = $target[0]->siteId ?? null;
+
+                return EntryResolver::resolve(null, $arguments, $context, $resolveInfo);
+            },
+            'complexity' => GqlHelper::relatedArgumentComplexity(GqlService::GRAPHQL_COMPLEXITY_EAGER_LOAD),
+        ];
+    }
+
+
+    // Protected Methods
+    // =========================================================================
+
     protected function inputHtml(mixed $value, ?ElementInterface $element, bool $inline): string
     {
         $view = Craft::$app->getView();
@@ -138,36 +173,5 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'section' => $this->source['value'] ?? null,
             'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
         ]);
-    }
-
-    public function afterElementSave(ElementInterface $element, bool $isNew): void
-    {
-        ManyToMany::$plugin->getService()->saveRelationship($this, $element);
-
-        parent::afterElementSave($element, $isNew);
-    }
-
-    public function getPreviewHtml($value, ElementInterface $element): string
-    {
-        return Cp::elementPreviewHtml($value);
-    }
-
-    public function getContentGqlType(): array
-    {
-        return [
-            'name' => $this->handle,
-            'type' => Type::nonNull(Type::listOf(EntryInterface::getType())),
-            'args' => EntryArguments::getArguments(),
-            'resolve' => function($source, $arguments, $context, $resolveInfo) {
-                // Convert the already-resolved entries to an entries query. This is because `normalizeValue`
-                // doesn't return the traditional EntryElementQuery value.
-                $target = $source->{$this->handle};
-                $arguments['id'] = ArrayHelper::getColumn($target, 'id');
-                $arguments['siteId'] = $target[0]->siteId ?? null;
-
-                return EntryResolver::resolve(null, $arguments, $context, $resolveInfo);
-            },
-            'complexity' => GqlHelper::relatedArgumentComplexity(GqlService::GRAPHQL_COMPLEXITY_EAGER_LOAD),
-        ];
     }
 }
