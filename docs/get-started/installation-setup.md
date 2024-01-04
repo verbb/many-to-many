@@ -14,5 +14,5 @@ cd /path/to/project
 
 2. Then tell Composer to require the plugin, and Craft to install it:
 ```shell
-composer require verbb/many-to-many && php craft plugin/install many-to-many
+composer require verbb/many-to-many && php craft plugin/install manytomany
 ```
