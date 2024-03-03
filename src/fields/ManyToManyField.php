@@ -30,6 +30,11 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return Craft::t('manytomany', 'Many to Many');
     }
 
+    public static function icon(): string
+    {
+        return '@verbb/manytomany/icon-mask.svg';
+    }
+
     public static function dbType(): array|string|null
     {
         return null;
