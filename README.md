@@ -1,5 +1,5 @@
-# Many to Many plugin for Craft CMS
-<img width="500" src="https://verbb.imgix.net/plugins/many-to-many/many-to-many-social-card.png?v=2">
+<p align="center"><img src="https://verbb.imgix.net/plugins/many-to-many/many-to-many-icon.svg" width="100" height="100" alt="Many to Many icon"></p>
+<h1 align="center">Many to Many for Craft CMS</h1>
 
 Many to Many is a Craft CMS plugin to enable two-way relationships from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
 
