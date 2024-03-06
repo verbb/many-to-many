@@ -98,7 +98,7 @@ class Service extends Component
                         'sortOrder' => 1,
                     ];
 
-                    Db::->insert('{{%relations}}', $columns);
+                    Db::insert('{{%relations}}', $columns);
                 }
             }
         }
@@ -118,7 +118,7 @@ class Service extends Component
                     ':targetId' => $targetId,
                 ];
 
-                Db::->delete('{{%relations}}', $oldRelationConditions, $oldRelationParams);
+                Db::delete('{{%relations}}', $oldRelationConditions, $oldRelationParams);
             }
         }
     }
