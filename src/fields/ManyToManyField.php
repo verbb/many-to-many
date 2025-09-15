@@ -69,8 +69,10 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         // Save the raw value for add/delete elements to use in `saveRelationship()`. We have to use the cache
         // as this isn't retained in `afterElementSave()`, and we want to wait until after the element has saved
         // to save the relationship, in case something went wrong with the element saving.
-        $cacheKey = implode('--', ['many-to-many', $this->handle, $element->canonicalUid]);
-        Craft::$app->getCache()->set($cacheKey, ($value ?? []));
+        if ($value !== null) {
+            $cacheKey = implode('--', ['many-to-many', $this->handle, $element->canonicalUid]);
+            Craft::$app->getCache()->set($cacheKey, ($value ?? []));
+        }
 
         if ($element && $sourceValue && $this->singleField) {
             $relatedSection = Craft::$app->getEntries()->getSectionByUid($sourceValue);
