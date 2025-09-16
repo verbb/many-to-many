@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.3 - 2025-09-16
+
+### Fixed
+- Fix normalization handling when field value is `null`. (thanks @stephenheron).
+
 ## 4.0.2 - 2025-02-05
 
 ### Fixed
