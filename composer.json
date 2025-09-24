@@ -2,7 +2,7 @@
     "name": "verbb/many-to-many",
     "description": "A field type to manage relationships from both sides.",
     "type": "craft-plugin",
-    "version": "4.0.2",
+    "version": "5.0.0-alpha.1",
     "keywords": [
         "craft",
         "cms",
@@ -34,8 +34,8 @@
         }
     ],
     "require": {
-        "craftcms/cms": "^5.0.0",
-        "verbb/base": "^3.0.0"
+        "craftcms/cms": "6.x-dev",
+        "verbb/base": "dev-craft-6"
     },
     "autoload": {
         "psr-4": {
@@ -45,7 +45,9 @@
     "extra": {
         "name": "Many to Many",
         "handle": "manytomany",
-        "changelogUrl": "https://raw.githubusercontent.com/verbb/many-to-many/craft-5/CHANGELOG.md",
+        "changelogUrl": "https://raw.githubusercontent.com/verbb/many-to-many/craft-6/CHANGELOG.md",
         "class": "verbb\\manytomany\\ManyToMany"
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
