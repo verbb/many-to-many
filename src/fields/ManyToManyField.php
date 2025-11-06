@@ -62,6 +62,14 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     // Public Methods
     // =========================================================================
 
+    public function __construct($config = [])
+    {
+        // Remove unused settings
+        unset($config['rawValue']);
+
+        parent::__construct($config);
+    }
+
     public function normalizeValue(mixed $value, ElementInterface $element = null): mixed
     {
         $sourceValue = $this->source['value'] ?? null;
