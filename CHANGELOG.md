@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.4 - 2025-11-29
+
+### Fixed
+- Fix a migration issue from Craft 4.
+
 ## 4.0.3 - 2025-09-16
 
 ### Fixed
