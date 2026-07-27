@@ -4,23 +4,30 @@ namespace verbb\manytomany\fields;
 use verbb\manytomany\ManyToMany;
 
 use Craft;
+use craft\base\EagerLoadingFieldInterface;
 use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\base\PreviewableFieldInterface;
+use craft\db\Query;
+use craft\db\Table;
 use craft\elements\Entry;
 use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
 use craft\gql\resolvers\elements\Entry as EntryResolver;
-use craft\helpers\Cp;
-use craft\helpers\Gql as GqlHelper;
-use craft\services\Gql as GqlService;
 use craft\helpers\ArrayHelper;
+use craft\helpers\Cp;
+use craft\helpers\Db;
+use craft\helpers\Gql as GqlHelper;
 use craft\helpers\Html;
+use craft\helpers\StringHelper;
+use craft\services\Gql as GqlService;
 
 use GraphQL\Type\Definition\Type;
 
+use yii\db\Expression;
 
-class ManyToManyField extends Field implements PreviewableFieldInterface
+
+class ManyToManyField extends Field implements EagerLoadingFieldInterface, PreviewableFieldInterface
 {
     // Static Methods
     // =========================================================================
@@ -50,6 +57,45 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
         return sprintf('%s[]', Entry::class);
     }
 
+    public static function queryCondition(
+        array $instances,
+        mixed $value,
+        array &$params,
+    ): array|string|Expression|false|null {
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        // Support :empty: / :notempty: against the inverse relations table
+        if (!isset($value[0]) || !in_array($value[0], [':notempty:', ':empty:', 'not :empty:'], true)) {
+            return false;
+        }
+
+        $emptyCondition = array_shift($value);
+        $existsConditions = [];
+
+        foreach ($instances as $field) {
+            /** @var self $field */
+            $exists = static::existsQueryCondition($field);
+
+            if ($exists !== null) {
+                $existsConditions[] = $exists;
+            }
+        }
+
+        if (empty($existsConditions)) {
+            return false;
+        }
+
+        $exists = count($existsConditions) === 1 ? $existsConditions[0] : array_merge(['or'], $existsConditions);
+
+        if (in_array($emptyCondition, [':notempty:', 'not :empty:'], true)) {
+            return $exists;
+        }
+
+        return ['not', $exists];
+    }
+
 
     // Properties
     // =========================================================================
@@ -72,26 +118,54 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
 
     public function normalizeValue(mixed $value, ElementInterface $element = null): mixed
     {
+        // Already a list of entries (eager-loaded or set programmatically)
+        if (is_array($value) && !array_key_exists('add', $value) && !array_key_exists('delete', $value)) {
+            if (empty($value) || reset($value) instanceof Entry) {
+                return array_values($value);
+            }
+        }
+
         $sourceValue = $this->source['value'] ?? null;
+        $isPosted = is_array($value) && (array_key_exists('add', $value) || array_key_exists('delete', $value));
 
         // Save the raw value for add/delete elements to use in `saveRelationship()`. We have to use the cache
         // as this isn't retained in `afterElementSave()`, and we want to wait until after the element has saved
         // to save the relationship, in case something went wrong with the element saving.
-        if ($value !== null) {
+        if ($element?->canonicalUid && ($isPosted || $value === '')) {
             $cacheKey = implode('--', ['many-to-many', $this->handle, $element->canonicalUid]);
-            Craft::$app->getCache()->set($cacheKey, ($value ?? []));
+            Craft::$app->getCache()->set($cacheKey, $isPosted ? $value : []);
         }
 
-        if ($element && $sourceValue && $this->singleField) {
-            $relatedSection = Craft::$app->getEntries()->getSectionByUid($sourceValue);
+        if (!$element || !$sourceValue || !$this->singleField) {
+            return [];
+        }
 
-            // Get all the entries that this has already been attached to
-            if ($relatedSection) {
-                return ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+        $relatedSection = Craft::$app->getEntries()->getSectionByUid($sourceValue);
+
+        if (!$relatedSection) {
+            return [];
+        }
+
+        // Posted values are the current selection in the element select (`add`) plus removals (`delete`).
+        // Use `add` for validation / redisplay so required fields and failed saves keep the selection —
+        // DB relations aren't updated until afterElementSave().
+        if ($isPosted) {
+            $addIds = array_values(array_unique(array_filter(array_map('intval', (array)($value['add'] ?? [])))));
+
+            if (empty($addIds)) {
+                return [];
             }
+
+            return Entry::find()
+                ->id($addIds)
+                ->siteId($element->siteId)
+                ->status(null)
+                ->section($relatedSection)
+                ->fixedOrder()
+                ->all();
         }
 
-        return $value;
+        return ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
     }
 
     public function getSettingsHtml(): string
@@ -131,6 +205,86 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
     public function getPreviewHtml($value, ElementInterface $element): string
     {
         return Cp::elementPreviewHtml($value);
+    }
+
+    public function getEagerLoadingMap(array $sourceElements): array|null|false
+    {
+        $sourceValue = $this->source['value'] ?? null;
+
+        if (!$sourceValue || !$this->singleField || empty($sourceElements)) {
+            return false;
+        }
+
+        $fieldId = Db::idByUid(Table::FIELDS, $this->singleField);
+
+        if (!$fieldId) {
+            return false;
+        }
+
+        $sourceElementIds = [];
+
+        foreach ($sourceElements as $sourceElement) {
+            $sourceElementIds[] = $sourceElement->id;
+        }
+
+        $sourceSiteId = $sourceElements[0]->siteId;
+
+        // Relations live on the associated Entries field (source = related entry, target = this element)
+        $map = (new Query())
+            ->select(['targetId as source', 'sourceId as target'])
+            ->from([Table::RELATIONS])
+            ->where([
+                'and',
+                [
+                    'fieldId' => $fieldId,
+                    'targetId' => $sourceElementIds,
+                ],
+                [
+                    'or',
+                    ['sourceSiteId' => $sourceSiteId],
+                    ['sourceSiteId' => null],
+                ],
+            ])
+            ->orderBy(['sortOrder' => SORT_ASC])
+            ->all();
+
+        $criteria = [
+            'status' => null,
+            'siteId' => $sourceSiteId,
+        ];
+
+        $section = Craft::$app->getEntries()->getSectionByUid($sourceValue);
+
+        if ($section) {
+            $criteria['sectionId'] = $section->id;
+        }
+
+        return [
+            'elementType' => Entry::class,
+            'map' => $map,
+            'criteria' => $criteria,
+        ];
+    }
+
+    public function getEagerLoadingGqlConditions(): ?array
+    {
+        $sourceUid = $this->source['value'] ?? null;
+        $allowedEntities = GqlHelper::extractAllowedEntitiesFromSchema();
+        $sectionUids = $allowedEntities['sections'] ?? [];
+
+        if (!$sourceUid || empty($sectionUids) || !in_array($sourceUid, $sectionUids, true)) {
+            return null;
+        }
+
+        $section = Craft::$app->getEntries()->getSectionByUid($sourceUid);
+
+        if (!$section) {
+            return null;
+        }
+
+        return [
+            'sectionId' => [$section->id],
+        ];
     }
 
     public function getContentGqlType(): array
@@ -188,5 +342,46 @@ class ManyToManyField extends Field implements PreviewableFieldInterface
             'section' => $this->source['value'] ?? null,
             'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
         ]);
+    }
+
+
+    // Private Methods
+    // =========================================================================
+
+    /**
+     * Condition for elements that have at least one inverse relation via the associated field.
+     */
+    private static function existsQueryCondition(self $field): ?array
+    {
+        if (!$field->singleField) {
+            return null;
+        }
+
+        $associatedFieldId = Db::idByUid(Table::FIELDS, $field->singleField);
+
+        if (!$associatedFieldId) {
+            return null;
+        }
+
+        $ns = sprintf('%s_%s', $field->handle, StringHelper::randomString(5));
+
+        $query = (new Query())
+            ->from(["relations_$ns" => Table::RELATIONS])
+            ->innerJoin(["elements_$ns" => Table::ELEMENTS], "[[elements_$ns.id]] = [[relations_$ns.sourceId]]")
+            ->where([
+                'and',
+                "[[relations_$ns.targetId]] = [[elements.id]]",
+                [
+                    "relations_$ns.fieldId" => $associatedFieldId,
+                    "elements_$ns.dateDeleted" => null,
+                ],
+                [
+                    'or',
+                    ["relations_$ns.sourceSiteId" => null],
+                    ["relations_$ns.sourceSiteId" => new Expression('[[elements_sites.siteId]]')],
+                ],
+            ]);
+
+        return ['exists', $query];
     }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.0.5 - 2026-07-27
+
+### Fixed
+- Fix eager loading Many-to-Many fields returning empty results.
+- Fix required Many-to-Many fields failing validation on save.
+- Fix GraphQL `:empty:` / `:notempty:` query arguments for Many-to-Many fields.
+
 ## 4.0.4 - 2025-11-29
 
 ### Fixed
