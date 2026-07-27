@@ -84,17 +84,27 @@ class Service extends Component
         $toDelete = !empty($content['delete']) ? $content['delete'] : [];
 
         foreach ($toAdd as $sourceId) {
-            $sourceElement = Entry::find()->id($sourceId)->one();
-            $currentRelations = array_map(fn($r) => $r->Id, $sourceElement->getFieldValue($field->handle)->all());
-            $currentRelations = array_unique(array_merge($currentRelations, [$targetId]));
+            $sourceElement = Entry::find()->id($sourceId)->status(null)->one();
+
+            if (!$sourceElement) {
+                continue;
+            }
+
+            $currentRelations = array_map(fn($r) => $r->id, $sourceElement->getFieldValue($field->handle)->all());
+            $currentRelations = array_values(array_unique(array_merge($currentRelations, [$targetId])));
             $sourceElement->setFieldValue($field->handle, $currentRelations);
             Craft::$app->elements->saveElement($sourceElement);
         }
-        
+
         foreach ($toDelete as $sourceId) {
-            $sourceElement = Entry::find()->id($sourceId)->one();
-            $currentRelations = array_map(fn($r) => $r->Id, $sourceElement->getFieldValue($field->handle)->all());
-            $currentRelations = array_filter($currentRelations, fn($r) => $r != $targetId);
+            $sourceElement = Entry::find()->id($sourceId)->status(null)->one();
+
+            if (!$sourceElement) {
+                continue;
+            }
+
+            $currentRelations = array_map(fn($r) => $r->id, $sourceElement->getFieldValue($field->handle)->all());
+            $currentRelations = array_values(array_filter($currentRelations, fn($r) => (int)$r !== (int)$targetId));
             $sourceElement->setFieldValue($field->handle, $currentRelations);
             Craft::$app->elements->saveElement($sourceElement);
         }
