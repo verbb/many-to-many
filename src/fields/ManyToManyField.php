@@ -10,6 +10,7 @@ use craft\base\Field;
 use craft\base\PreviewableFieldInterface;
 use craft\db\Query;
 use craft\db\Table;
+use craft\elements\ElementCollection;
 use craft\elements\Entry;
 use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
@@ -204,6 +205,10 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public function getPreviewHtml($value, ElementInterface $element): string
     {
+        if ($value instanceof ElementCollection) {
+            $value = $value->all();
+        }
+
         return Cp::elementPreviewHtml($value);
     }
 
