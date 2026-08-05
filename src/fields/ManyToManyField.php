@@ -254,7 +254,6 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             ->all();
 
         $criteria = [
-            'status' => null,
             'siteId' => $sourceSiteId,
         ];
 
@@ -338,6 +337,16 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         // refactored in the future to allow for multiple types
         if (!($element instanceof Entry)) {
             return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
+        }
+
+        // Match Craft relation fields: CP input includes disabled/non-live related entries.
+        // Keep posted values as-is so validation failures don't lose the current selection.
+        $sourceValue = $this->source['value'] ?? null;
+        $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+        $posted = Craft::$app->getRequest()->getBodyParam($this->handle);
+
+        if ($relatedSection && $this->singleField && $posted === null) {
+            $value = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField, true);
         }
 
         return $view->renderTemplate('manytomany/field/input', [

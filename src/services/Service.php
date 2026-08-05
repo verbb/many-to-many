@@ -21,13 +21,17 @@ class Service extends Component
     /**
      * Returns related entries from an element limited to a section.
      *
+     * By default this respects Craft’s normal entry status filter (live/enabled).
+     * Pass `$anyStatus = true` for CP input so disabled related entries remain visible.
+     *
      * @param ElementInterface $element
      * @param Section $section
-     * @param string $field
+     * @param string $fieldUid
+     * @param bool $anyStatus
      *
      * @return Entry[]
      */
-    public function getRelatedEntries(ElementInterface $element, Section $section, string $fieldUid): array
+    public function getRelatedEntries(ElementInterface $element, Section $section, string $fieldUid, bool $anyStatus = false): array
     {
         $query = Entry::find();
 
@@ -35,12 +39,15 @@ class Service extends Component
 
         $query->section = $section;
         $query->limit = null;
-        $query->status = null;
         $query->siteId = $element->siteId;
         $query->relatedTo = [
             'targetElement' => $element,
             'field' => $fieldId,
         ];
+
+        if ($anyStatus) {
+            $query->status = null;
+        }
 
         return $query->all();
     }
