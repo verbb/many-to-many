@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.6 - 2026-08-10
+
+### Fixed
+- Fix Many-to-Many fields returning disabled related entries on the front end. #60.
+- Fix PHP error when rendering Many-to-Many field previews with an `ElementCollection` value.
+
 ## 4.0.5 - 2026-07-27
 
 ### Fixed
