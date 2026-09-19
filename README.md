@@ -3,6 +3,8 @@
 
 Many to Many is a Craft CMS plugin to enable two-way relationships from either of the entries that belong to the association. For example, if you have a recipe with many ingredients, and ingredients that belong to many recipes, you can manage the relationship from either the Recipe's entry or the Ingredient's entry.
 
+Relationships remain available through native Craft element queries and GraphQL.
+
 ## Documentation
 Visit the [Many to Many Plugin page](https://verbb.io/craft-plugins/many-to-many) for all documentation, guides, pricing and developer resources.
 
