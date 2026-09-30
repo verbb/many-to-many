@@ -9,6 +9,10 @@ Create an Entries field called Related Ingredients (`relatedIngredients`) that s
   * *Associated Field* is the field on the other end of this relationship. (for example, Related Ingredients).
 3. Attach the newly created Many to Many field to your section.
 
+![The Related Ingredients field on a recipe](../../screenshots/many-to-many-destination.png)
+
+![The reverse Related Recipes field on an ingredient](../../screenshots/many-to-many-source.png)
+
 Open a recipe, select an ingredient and save it. Open that ingredient and check the reverse field for the recipe. Change the selection there, save, and reopen the recipe to confirm the relationship changed from both sides.
 
 ## Template Usage
