@@ -5,6 +5,7 @@
 ### Fixed
 - Fixed a medium-severity improper authorization vulnerability.
 - Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
+- Fixed Many-to-Many selections being discarded after validation errors or when reopening drafts.
 
 ## 4.0.7 - 2026-09-14
 

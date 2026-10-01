@@ -434,9 +434,14 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         // Keep posted values as-is so validation failures don't lose the current selection.
         $sourceValue = $this->source['value'] ?? null;
         $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
-        $posted = Craft::$app->getRequest()->getBodyParam($this->handle);
 
-        if ($relatedSection && $this->singleField && $posted === null) {
+        if (
+            $relatedSection &&
+            $this->singleField &&
+            !$element->getIsDraft() &&
+            !$element->getIsRevision() &&
+            !$element->isFieldDirty($this->handle)
+        ) {
             $value = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField, true);
         }
 
