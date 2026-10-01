@@ -26,6 +26,7 @@ use craft\services\Gql as GqlService;
 use yii\db\Expression;
 use yii\db\Schema;
 
+use DateTime;
 use WeakMap;
 
 use GraphQL\Type\Definition\Type;
@@ -504,7 +505,10 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
      */
     private static function existsQueryCondition(self $field): ?array
     {
-        if (!$field->singleField) {
+        $sourceValue = $field->source['value'] ?? null;
+        $section = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+
+        if (!$field->singleField || !$section) {
             return null;
         }
 
@@ -515,16 +519,35 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
 
         $ns = sprintf('%s_%s', $field->handle, StringHelper::randomString(5));
+        $now = new DateTime();
+        $now->setTime((int)$now->format('H'), (int)$now->format('i'), 59);
+        $currentTimeDb = Db::prepareDateForDb($now);
 
         $query = (new Query())
             ->from(["relations_$ns" => Table::RELATIONS])
             ->innerJoin(["elements_$ns" => Table::ELEMENTS], "[[elements_$ns.id]] = [[relations_$ns.sourceId]]")
+            ->innerJoin(["entries_$ns" => Table::ENTRIES], "[[entries_$ns.id]] = [[elements_$ns.id]]")
+            ->innerJoin(
+                ["elements_sites_$ns" => Table::ELEMENTS_SITES],
+                "[[elements_sites_$ns.elementId]] = [[elements_$ns.id]] AND [[elements_sites_$ns.siteId]] = [[elements_sites.siteId]]",
+            )
             ->where([
                 'and',
                 "[[relations_$ns.targetId]] = [[elements.id]]",
                 [
                     "relations_$ns.fieldId" => $associatedFieldId,
                     "elements_$ns.dateDeleted" => null,
+                    "elements_$ns.draftId" => null,
+                    "elements_$ns.revisionId" => null,
+                    "elements_$ns.enabled" => true,
+                    "elements_sites_$ns.enabled" => true,
+                    "entries_$ns.sectionId" => $section->id,
+                ],
+                ['<=', "entries_$ns.postDate", $currentTimeDb],
+                [
+                    'or',
+                    ["entries_$ns.expiryDate" => null],
+                    ['>', "entries_$ns.expiryDate", $currentTimeDb],
                 ],
                 [
                     'or',

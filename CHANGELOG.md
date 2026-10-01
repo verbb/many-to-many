@@ -4,6 +4,7 @@
 
 ### Fixed
 - Fixed a medium-severity improper authorization vulnerability.
+- Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
 
 ## 4.0.7 - 2026-09-14
 
