@@ -27,7 +27,6 @@ use GraphQL\Type\Definition\Type;
 
 use yii\db\Expression;
 
-
 class ManyToManyField extends Field implements EagerLoadingFieldInterface, PreviewableFieldInterface
 {
     // Static Methods

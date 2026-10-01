@@ -63,7 +63,7 @@ class Service extends Component
         if (ElementHelper::isDraftOrRevision($element)) {
             return;
         }
-        
+
         $cacheKey = implode('--', ['many-to-many', $fieldType->handle, $element->canonicalUid]);
         $content = Craft::$app->getCache()->get($cacheKey);
 
@@ -82,7 +82,7 @@ class Service extends Component
         // targetId --> $elementId, this is the reverse of the relationship
         $fieldId = Db::idByUid(Table::FIELDS, $fieldType->singleField);
 
-        $field = Craft::$app->fields->getFieldByUid($fieldType->singleField); 
+        $field = Craft::$app->fields->getFieldByUid($fieldType->singleField);
 
         // The relationships we either want to add or leave
         $toAdd = !empty($content['add']) ? $content['add'] : [];
