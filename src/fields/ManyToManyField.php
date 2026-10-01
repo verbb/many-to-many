@@ -23,9 +23,12 @@ use craft\helpers\Html;
 use craft\helpers\StringHelper;
 use craft\services\Gql as GqlService;
 
-use GraphQL\Type\Definition\Type;
-
 use yii\db\Expression;
+use yii\db\Schema;
+
+use WeakMap;
+
+use GraphQL\Type\Definition\Type;
 
 class ManyToManyField extends Field implements EagerLoadingFieldInterface, PreviewableFieldInterface
 {
@@ -44,7 +47,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public static function dbType(): array|string|null
     {
-        return null;
+        return Schema::TYPE_JSON;
     }
 
     public static function defaultSelectionLabel(): string
@@ -104,6 +107,9 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
 
+    private ?WeakMap $_submittedSelections = null;
+    private ?WeakMap $_preparedChanges = null;
+
 
     // Public Methods
     // =========================================================================
@@ -126,15 +132,6 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
 
         $sourceValue = $this->source['value'] ?? null;
-        $isPosted = is_array($value) && (array_key_exists('add', $value) || array_key_exists('delete', $value));
-
-        // Save the raw value for add/delete elements to use in `saveRelationship()`. We have to use the cache
-        // as this isn't retained in `afterElementSave()`, and we want to wait until after the element has saved
-        // to save the relationship, in case something went wrong with the element saving.
-        if ($element?->canonicalUid && ($isPosted || $value === '')) {
-            $cacheKey = implode('--', ['many-to-many', $this->handle, $element->canonicalUid]);
-            Craft::$app->getCache()->set($cacheKey, $isPosted ? $value : []);
-        }
 
         if (!$element || !$sourceValue || !$this->singleField) {
             return [];
@@ -146,26 +143,115 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return [];
         }
 
-        // Posted values are the current selection in the element select (`add`) plus removals (`delete`).
-        // Use `add` for validation / redisplay so required fields and failed saves keep the selection —
-        // DB relations aren't updated until afterElementSave().
-        if ($isPosted) {
-            $addIds = array_values(array_unique(array_filter(array_map('intval', (array)($value['add'] ?? [])))));
-
-            if (empty($addIds)) {
-                return [];
-            }
-
-            return Entry::find()
-                ->id($addIds)
-                ->siteId($element->siteId)
-                ->status(null)
-                ->section($relatedSection)
-                ->fixedOrder()
-                ->all();
+        // Drafts and revisions retain their own selection in element content. Canonical values continue to
+        // reflect the live inverse relations so changes made from either side never leave a stale public value.
+        if (($element->getIsDraft() || $element->getIsRevision()) && is_array($value)) {
+            return $this->_entriesForSourceIds($this->_normalizeSourceIds($value), $element);
         }
 
         return ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+    }
+
+    public function normalizeValueFromRequest(mixed $value, ?ElementInterface $element): mixed
+    {
+        if (!$element) {
+            return $this->normalizeValue($value, $element);
+        }
+
+        $valid = is_array($value) || $value === null || $value === '';
+        $sourceIdsValid = true;
+        $sourceIds = $this->_normalizeSourceIds(is_array($value) ? ($value['add'] ?? []) : [], $sourceIdsValid);
+        $entries = $this->_entriesForSourceIds($sourceIds, $element);
+        $resolvedIds = array_map(fn(Entry $entry) => $entry->id, $entries);
+
+        $this->_submittedSelections ??= new WeakMap();
+        $this->_submittedSelections[$element] = [
+            'ids' => $resolvedIds,
+            'valid' => $valid && $sourceIdsValid && count($sourceIds) === count($resolvedIds),
+        ];
+
+        return $entries;
+    }
+
+    public function serializeValue(mixed $value, ?ElementInterface $element): mixed
+    {
+        if ($value instanceof ElementCollection) {
+            $value = $value->all();
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return $this->_normalizeSourceIds(array_map(
+            fn(mixed $item) => $item instanceof Entry ? $item->id : $item,
+            $value,
+        ));
+    }
+
+    public function beforeElementSave(ElementInterface $element, bool $isNew): bool
+    {
+        if ($this->_preparedChanges !== null && isset($this->_preparedChanges[$element])) {
+            unset($this->_preparedChanges[$element]);
+        }
+
+        if (!parent::beforeElementSave($element, $isNew)) {
+            return false;
+        }
+
+        if ($element->getIsDraft()) {
+            $selection = $this->_submittedSelections[$element] ?? null;
+
+            if ($selection !== null && !$selection['valid']) {
+                $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+                return false;
+            }
+
+            return true;
+        }
+
+        if ($element->getIsRevision()) {
+            return true;
+        }
+
+        $selection = $this->_submittedSelections[$element] ?? null;
+
+        if ($selection !== null) {
+            unset($this->_submittedSelections[$element]);
+        }
+
+        // Applying a draft duplicates its field values onto the canonical element. Only consume the stored
+        // selection when Craft marked this field as changed on that exact draft.
+        if (
+            $selection === null &&
+            $element->duplicateOf?->getIsDraft() &&
+            $element->isFieldDirty($this->handle)
+        ) {
+            $selection = [
+                'ids' => $this->serializeValue($element->getFieldValue($this->handle), $element),
+                'valid' => true,
+            ];
+        }
+
+        if ($selection === null) {
+            return true;
+        }
+
+        if (!$selection['valid']) {
+            $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+            return false;
+        }
+
+        $changes = ManyToMany::$plugin->getService()->prepareRelationshipChanges($this, $element, $selection['ids']);
+
+        if ($changes === null) {
+            return false;
+        }
+
+        $this->_preparedChanges ??= new WeakMap();
+        $this->_preparedChanges[$element] = $changes;
+
+        return true;
     }
 
     public function getSettingsHtml(): string
@@ -197,7 +283,12 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public function afterElementSave(ElementInterface $element, bool $isNew): void
     {
-        ManyToMany::$plugin->getService()->saveRelationship($this, $element);
+        $changes = $this->_preparedChanges[$element] ?? null;
+
+        if ($changes !== null) {
+            unset($this->_preparedChanges[$element]);
+            ManyToMany::$plugin->getService()->saveRelationship($element, $changes);
+        }
 
         parent::afterElementSave($element, $isNew);
     }
@@ -360,6 +451,53 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     // Private Methods
     // =========================================================================
+
+    private function _entriesForSourceIds(array $sourceIds, ElementInterface $element): array
+    {
+        $sourceValue = $this->source['value'] ?? null;
+        $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+
+        if (!$relatedSection || empty($sourceIds)) {
+            return [];
+        }
+
+        return Entry::find()
+            ->id($sourceIds)
+            ->siteId($element->siteId)
+            ->status(null)
+            ->section($relatedSection)
+            ->fixedOrder()
+            ->all();
+    }
+
+    private function _normalizeSourceIds(mixed $values, ?bool &$valid = null): array
+    {
+        $valid = true;
+        $sourceIds = [];
+
+        if ($values === null || $values === '') {
+            return [];
+        }
+
+        if (!is_array($values)) {
+            $values = [$values];
+        }
+
+        foreach ($values as $value) {
+            $sourceId = filter_var($value, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+
+            if ($sourceId === false) {
+                $valid = false;
+                continue;
+            }
+
+            $sourceIds[] = $sourceId;
+        }
+
+        return array_values(array_unique($sourceIds));
+    }
 
     /**
      * Condition for elements that have at least one inverse relation via the associated field.

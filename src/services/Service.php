@@ -8,7 +8,11 @@ use craft\base\Component;
 use craft\base\ElementInterface;
 use craft\db\Query;
 use craft\db\Table;
+use craft\elements\ElementCollection;
+use craft\elements\db\ElementQueryInterface;
 use craft\elements\Entry;
+use craft\errors\InvalidElementException;
+use craft\fields\Entries;
 use craft\helpers\Db;
 use craft\helpers\ElementHelper;
 use craft\models\Section;
@@ -52,69 +56,134 @@ class Service extends Component
         return $query->all();
     }
 
-    /**
-     * Save relationships on external field.
-     *
-     * @param ManyToManyField $fieldType
-     * @param ElementInterface $element
-     */
-    public function saveRelationship(ManyToManyField $fieldType, ElementInterface $element): void
+    public function prepareRelationshipChanges(ManyToManyField $fieldType, ElementInterface $element, array $desiredIds): ?array
     {
         if (ElementHelper::isDraftOrRevision($element)) {
+            return [];
+        }
+
+        $sourceValue = $fieldType->source['value'] ?? null;
+        $section = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+        $associatedField = $fieldType->singleField ? Craft::$app->getFields()->getFieldByUid($fieldType->singleField) : null;
+
+        if (!$section || !$associatedField instanceof Entries) {
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'This relationship field is not configured correctly.'));
+            return null;
+        }
+
+        $desiredEntries = empty($desiredIds) ? [] : Entry::find()
+            ->id($desiredIds)
+            ->siteId($element->siteId)
+            ->status(null)
+            ->section($section)
+            ->fixedOrder()
+            ->all();
+        $desiredEntries = $this->_indexEntries($desiredEntries);
+
+        if (count($desiredEntries) !== count($desiredIds)) {
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+            return null;
+        }
+
+        $currentEntries = $this->_indexEntries($this->getRelatedEntries($element, $section, $fieldType->singleField, true));
+        $toAdd = array_diff_key($desiredEntries, $currentEntries);
+        $toDelete = array_diff_key($currentEntries, $desiredEntries);
+        $modifiedEntries = $toAdd + $toDelete;
+
+        if (empty($modifiedEntries)) {
+            return [];
+        }
+
+        $user = Craft::$app->getUser()->getIdentity();
+        $elements = Craft::$app->getElements();
+        $changes = [];
+
+        if (!$user) {
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected entries.'));
+            return null;
+        }
+
+        foreach ($modifiedEntries as $sourceId => $sourceElement) {
+            $field = $sourceElement->getFieldLayout()?->getFieldByUid($associatedField->uid);
+
+            if (!$field instanceof Entries) {
+                $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entries cannot store this relationship.'));
+                return null;
+            }
+
+            if (!$elements->canView($sourceElement, $user) || !$elements->canSave($sourceElement, $user)) {
+                $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected entries.'));
+                return null;
+            }
+
+            $changes[] = [
+                'source' => $sourceElement,
+                'field' => $field,
+                'add' => isset($toAdd[$sourceId]),
+            ];
+        }
+
+        return $changes;
+    }
+
+    public function saveRelationship(ElementInterface $element, array $changes): void
+    {
+        if (ElementHelper::isDraftOrRevision($element) || empty($changes)) {
             return;
         }
 
-        $cacheKey = implode('--', ['many-to-many', $fieldType->handle, $element->canonicalUid]);
-        $content = Craft::$app->getCache()->get($cacheKey);
-
-        // Get element ID of the current element. Be sure to use the canonicalId when dealing with autosave
         $targetId = $element->getCanonicalId();
 
-        // Delete cache related to this element ID
+        foreach ($changes as $change) {
+            $sourceElement = $change['source'];
+            $field = $change['field'];
+            $value = $sourceElement->getFieldValue($field->handle);
+
+            if ($value instanceof ElementQueryInterface) {
+                $currentRelations = (clone $value)
+                    ->status(null)
+                    ->siteId('*')
+                    ->unique()
+                    ->limit(null)
+                    ->ids();
+            } elseif ($value instanceof ElementCollection) {
+                $currentRelations = $value->ids()->all();
+            } else {
+                $currentRelations = [];
+            }
+
+            if ($change['add']) {
+                $currentRelations[] = $targetId;
+                $currentRelations = array_values(array_unique($currentRelations));
+            } else {
+                $currentRelations = array_values(array_filter(
+                    $currentRelations,
+                    fn(int $relationId) => $relationId !== $targetId,
+                ));
+            }
+
+            $sourceElement->setFieldValue($field->handle, $currentRelations);
+
+            if (!Craft::$app->getElements()->saveElement($sourceElement)) {
+                throw new InvalidElementException($sourceElement, Craft::t('manytomany', 'A related entry could not be saved.'));
+            }
+        }
+
         Craft::$app->getElements()->invalidateCachesForElement($element);
+    }
 
-        // Get submitted field value - note that we're fetching `rawValue` not the normalized value
-        Craft::$app->getCache()->delete($cacheKey);
 
-        // There are 3 Items we need to make up a unique relationship in the craft_relations table:
-        // fieldId  --> We define this in the Field settings when creating it
-        // sourceId --> The elementIds that create the relationship initially. This is currently stored in the $content array
-        // targetId --> $elementId, this is the reverse of the relationship
-        $fieldId = Db::idByUid(Table::FIELDS, $fieldType->singleField);
+    // Private Methods
+    // =========================================================================
 
-        $field = Craft::$app->fields->getFieldByUid($fieldType->singleField);
+    private function _indexEntries(array $entries): array
+    {
+        $indexed = [];
 
-        // The relationships we either want to add or leave
-        $toAdd = !empty($content['add']) ? $content['add'] : [];
-
-        // The relationships we want to remove
-        $toDelete = !empty($content['delete']) ? $content['delete'] : [];
-
-        foreach ($toAdd as $sourceId) {
-            $sourceElement = Entry::find()->id($sourceId)->status(null)->one();
-
-            if (!$sourceElement) {
-                continue;
-            }
-
-            $currentRelations = array_map(fn($r) => $r->id, $sourceElement->getFieldValue($field->handle)->all());
-            $currentRelations = array_values(array_unique(array_merge($currentRelations, [$targetId])));
-            $sourceElement->setFieldValue($field->handle, $currentRelations);
-            Craft::$app->elements->saveElement($sourceElement);
+        foreach ($entries as $entry) {
+            $indexed[$entry->id] = $entry;
         }
 
-        foreach ($toDelete as $sourceId) {
-            $sourceElement = Entry::find()->id($sourceId)->status(null)->one();
-
-            if (!$sourceElement) {
-                continue;
-            }
-
-            $currentRelations = array_map(fn($r) => $r->id, $sourceElement->getFieldValue($field->handle)->all());
-            $currentRelations = array_values(array_filter($currentRelations, fn($r) => (int)$r !== (int)$targetId));
-            $sourceElement->setFieldValue($field->handle, $currentRelations);
-            Craft::$app->elements->saveElement($sourceElement);
-        }
-
+        return $indexed;
     }
 }
