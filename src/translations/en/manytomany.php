@@ -13,4 +13,6 @@ return [
     'To use the Many to Many plugin you need to set a source.' => 'To use the Many to Many plugin you need to set a source.',
     'Select a valid linked section.' => 'Select a valid linked section.',
     'Select a non-translatable Entries field.' => 'Select a non-translatable Entries field.',
+    'Select no more than {limit, number} {limit, plural, one{entry} other{entries}}.' => 'Select no more than {limit, number} {limit, plural, one{entry} other{entries}}.',
+    'The maximum number of entries that may be selected.' => 'The maximum number of entries that may be selected.',
 ];

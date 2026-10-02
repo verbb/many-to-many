@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Added maximum-relations and view-mode settings for Many to Many fields.
+
 ### Changed
 - Replaced the CodeKit JavaScript build with Vite and moved field assets to `src/web`.
 - Expanded usage documentation for templates, GraphQL and field constraints.

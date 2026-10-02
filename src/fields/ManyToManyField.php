@@ -12,6 +12,7 @@ use craft\db\Query;
 use craft\db\Table;
 use craft\elements\ElementCollection;
 use craft\elements\Entry;
+use craft\fields\BaseRelationField;
 use craft\fields\Entries;
 use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
@@ -109,6 +110,8 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     public array $source = [];
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
+    public ?int $maxRelations = null;
+    public string $viewMode = BaseRelationField::VIEW_MODE_LIST;
 
     private ?WeakMap $_submittedSelections = null;
     private ?WeakMap $_preparedChanges = null;
@@ -205,8 +208,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         if ($element->getIsDraft()) {
             $selection = $this->_submittedSelections[$element] ?? null;
 
-            if ($selection !== null && !$selection['valid']) {
-                $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+            if ($selection !== null && !$this->_selectionIsValid($element, $selection)) {
                 return false;
             }
 
@@ -240,8 +242,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return true;
         }
 
-        if (!$selection['valid']) {
-            $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+        if (!$this->_selectionIsValid($element, $selection)) {
             return false;
         }
 
@@ -301,6 +302,12 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             'field' => $this,
             'elements' => $elements,
             'fields' => $fields,
+            'viewModes' => [
+                BaseRelationField::VIEW_MODE_LIST => Craft::t('app', 'List'),
+                BaseRelationField::VIEW_MODE_LIST_INLINE => Craft::t('app', 'Inline list'),
+                BaseRelationField::VIEW_MODE_CARDS => Craft::t('app', 'Cards'),
+                BaseRelationField::VIEW_MODE_CARDS_GRID => Craft::t('app', 'Card grid'),
+            ],
         ]);
     }
 
@@ -456,6 +463,13 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $rules = parent::defineRules();
         $rules[] = [['source'], 'validateSource'];
         $rules[] = [['singleField'], 'validateAssociatedField'];
+        $rules[] = [['maxRelations'], 'number', 'integerOnly' => true, 'min' => 1, 'skipOnEmpty' => true];
+        $rules[] = [['viewMode'], 'in', 'range' => [
+            BaseRelationField::VIEW_MODE_LIST,
+            BaseRelationField::VIEW_MODE_LIST_INLINE,
+            BaseRelationField::VIEW_MODE_CARDS,
+            BaseRelationField::VIEW_MODE_CARDS_GRID,
+        ]];
 
         return $rules;
     }
@@ -506,6 +520,8 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             'id' => Html::id($this->handle),
             'section' => $this->source['value'] ?? null,
             'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
+            'maxRelations' => $this->maxRelations,
+            'viewMode' => $inline ? BaseRelationField::VIEW_MODE_LIST_INLINE : $this->viewMode,
         ]);
     }
 
@@ -529,6 +545,23 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             ->section($relatedSection)
             ->fixedOrder()
             ->all();
+    }
+
+    private function _selectionIsValid(ElementInterface $element, array $selection): bool
+    {
+        if (!$selection['valid']) {
+            $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+            return false;
+        }
+
+        if ($this->maxRelations !== null && count($selection['ids']) > $this->maxRelations) {
+            $element->addError($this->handle, Craft::t('manytomany', 'Select no more than {limit, number} {limit, plural, one{entry} other{entries}}.', [
+                'limit' => $this->maxRelations,
+            ]));
+            return false;
+        }
+
+        return true;
     }
 
     private function _normalizeSourceIds(mixed $values, ?bool &$valid = null): array

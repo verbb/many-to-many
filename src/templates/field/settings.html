@@ -34,3 +34,23 @@
     placeholder: field.defaultSelectionLabel(),
     errors: field.getErrors('selectionLabel'),
 }) }}
+
+{{ forms.textField({
+    label: 'Max Relations' | t('app'),
+    instructions: 'The maximum number of entries that may be selected.' | t('manytomany'),
+    id: 'max-relations',
+    name: 'maxRelations',
+    value: field.maxRelations,
+    size: 2,
+    errors: field.getErrors('maxRelations'),
+}) }}
+
+{{ forms.selectField({
+    label: 'View Mode' | t('app'),
+    instructions: 'Choose how the field should look for authors.' | t('app'),
+    id: 'view-mode',
+    name: 'viewMode',
+    options: viewModes,
+    value: field.viewMode,
+    errors: field.getErrors('viewMode'),
+}) }}

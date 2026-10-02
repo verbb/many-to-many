@@ -10,6 +10,8 @@ Next, create a Many to Many field called Related Recipes (`relatedRecipes`) and 
 
 - **Linked Section** — choose Recipes, the section containing the entries that own the Related Ingredients field.
 - **Associated Field** — choose Related Ingredients, the Entries field that stores the relation.
+- **Max Relations** — optionally limit how many linked entries an author can select from this side of the relationship.
+- **View Mode** — choose whether authors see the selected entries as a list, inline list, cards or a card grid.
 
 Add Related Recipes to the Ingredients entry layout. The completed relationship lets editors choose ingredients from a recipe or recipes from an ingredient while keeping the same underlying relation in sync.
 
