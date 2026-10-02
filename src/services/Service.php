@@ -10,51 +10,13 @@ use craft\elements\ElementCollection;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\Entry;
 use craft\errors\InvalidElementException;
-use craft\fields\Entries;
+use craft\fields\BaseRelationField;
 use craft\helpers\ElementHelper;
-use craft\models\Section;
 
 class Service extends Component
 {
     // Public Methods
     // =========================================================================
-
-    /**
-     * Returns related entries from an element limited to a section.
-     *
-     * By default this respects Craft’s normal entry status filter (live/enabled).
-     * Pass `$anyStatus = true` for CP input so disabled related entries remain visible.
-     *
-     * @param ElementInterface $element
-     * @param Section $section
-     * @param string $fieldUid
-     * @param bool $anyStatus
-     *
-     * @return Entry[]
-     */
-    public function getRelatedEntries(ElementInterface $element, Section $section, string $fieldUid, bool $anyStatus = false): array
-    {
-        $fieldId = Craft::$app->getFields()->getFieldByUid($fieldUid)?->id;
-
-        if (!$fieldId) {
-            return [];
-        }
-
-        $query = Entry::find()
-            ->section($section)
-            ->limit(null)
-            ->siteId($element->siteId)
-            ->relatedTo([
-                'targetElement' => $element,
-                'field' => $fieldId,
-            ]);
-
-        if ($anyStatus) {
-            $query->status(null);
-        }
-
-        return $query->all();
-    }
 
     public function prepareRelationshipChanges(ManyToManyField $fieldType, ElementInterface $element, array $desiredIds): ?array
     {
@@ -63,46 +25,54 @@ class Service extends Component
         }
 
         $sourceValue = $fieldType->source['value'] ?? null;
-        $section = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+        $adapter = $fieldType->getSourceAdapter();
         $associatedField = $fieldType->singleField ? Craft::$app->getFields()->getFieldByUid($fieldType->singleField) : null;
+        $targetElementType = $associatedField instanceof BaseRelationField ? $associatedField::elementType() : null;
 
-        if (!$section || !$associatedField instanceof Entries) {
+        if (
+            !$sourceValue ||
+            !$adapter ||
+            !$adapter->sourceExists($sourceValue) ||
+            !$associatedField instanceof BaseRelationField ||
+            !$targetElementType ||
+            !$element instanceof $targetElementType ||
+            $associatedField->getIsTranslatable(null)
+        ) {
             $element->addError($fieldType->handle, Craft::t('manytomany', 'This relationship field is not configured correctly.'));
             return null;
         }
 
-        $desiredEntries = empty($desiredIds) ? [] : Entry::find()
-            ->id($desiredIds)
-            ->siteId($element->siteId)
-            ->status(null)
-            ->section($section)
-            ->fixedOrder()
-            ->all();
-        $desiredEntries = $this->_indexEntries($desiredEntries);
+        $desiredElements = $this->_indexElements($adapter->findElements($desiredIds, $element, $sourceValue));
 
-        if (count($desiredEntries) !== count($desiredIds)) {
-            $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+        if (count($desiredElements) !== count($desiredIds)) {
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected elements are invalid.'));
             return null;
         }
 
-        $currentEntries = $this->_indexEntries($this->getRelatedEntries($element, $section, $fieldType->singleField, true));
+        $currentElements = $this->_indexElements($adapter->findRelatedElements(
+            $element,
+            $sourceValue,
+            $associatedField->id,
+            true,
+        ));
 
-        if (!empty($fieldType->entryTypes)) {
+        if ($fieldType->sourceElementType === Entry::class && !empty($fieldType->entryTypes)) {
+            $section = Craft::$app->getEntries()->getSectionByUid($sourceValue);
             $allowedEntryTypeIds = array_flip($fieldType->getAllowedEntryTypeIds($section));
 
-            foreach ($desiredEntries as $sourceId => $desiredEntry) {
-                if (!isset($currentEntries[$sourceId]) && !isset($allowedEntryTypeIds[$desiredEntry->typeId])) {
+            foreach ($desiredElements as $sourceId => $desiredElement) {
+                if (!isset($currentElements[$sourceId]) && !isset($allowedEntryTypeIds[$desiredElement->typeId])) {
                     $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entry types are not allowed.'));
                     return null;
                 }
             }
         }
 
-        $toAdd = array_diff_key($desiredEntries, $currentEntries);
-        $toDelete = array_diff_key($currentEntries, $desiredEntries);
-        $modifiedEntries = $toAdd + $toDelete;
+        $toAdd = array_diff_key($desiredElements, $currentElements);
+        $toDelete = array_diff_key($currentElements, $desiredElements);
+        $modifiedElements = $toAdd + $toDelete;
 
-        if (empty($modifiedEntries)) {
+        if (empty($modifiedElements)) {
             return [];
         }
 
@@ -111,20 +81,20 @@ class Service extends Component
         $changes = [];
 
         if (!$user) {
-            $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected entries.'));
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected elements.'));
             return null;
         }
 
-        foreach ($modifiedEntries as $sourceId => $sourceElement) {
+        foreach ($modifiedElements as $sourceId => $sourceElement) {
             $field = $sourceElement->getFieldLayout()?->getFieldByUid($associatedField->uid);
 
-            if (!$field instanceof Entries) {
-                $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entries cannot store this relationship.'));
+            if (!$field instanceof BaseRelationField || $field::elementType() !== $targetElementType || $field->getIsTranslatable($sourceElement)) {
+                $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected elements cannot store this relationship.'));
                 return null;
             }
 
             if (!$elements->canView($sourceElement, $user) || !$elements->canSave($sourceElement, $user)) {
-                $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected entries.'));
+                $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected elements.'));
                 return null;
             }
 
@@ -177,7 +147,7 @@ class Service extends Component
             $sourceElement->setFieldValue($field->handle, $currentRelations);
 
             if (!Craft::$app->getElements()->saveElement($sourceElement)) {
-                throw new InvalidElementException($sourceElement, Craft::t('manytomany', 'A related entry could not be saved.'));
+                throw new InvalidElementException($sourceElement, Craft::t('manytomany', 'A related element could not be saved.'));
             }
         }
 
@@ -188,12 +158,12 @@ class Service extends Component
     // Private Methods
     // =========================================================================
 
-    private function _indexEntries(array $entries): array
+    private function _indexElements(array $elements): array
     {
         $indexed = [];
 
-        foreach ($entries as $entry) {
-            $indexed[$entry->id] = $entry;
+        foreach ($elements as $element) {
+            $indexed[$element->id] = $element;
         }
 
         return $indexed;

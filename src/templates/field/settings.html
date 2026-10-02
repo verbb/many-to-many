@@ -1,18 +1,31 @@
 {% import '_includes/forms' as forms %}
 
 {{ forms.selectField({
-    label: 'Linked Section' | t('manytomany'),
-    instructions: 'What is the section you want to link in this relationship?' | t('manytomany'),
+    label: 'Linked Element Type' | t('manytomany'),
+    instructions: 'Choose the type of elements that own the associated field.' | t('manytomany'),
+    id: 'source-element-type',
+    name: 'sourceElementType',
+    options: sourceTypeOptions,
+    value: field.sourceElementType,
+    errors: field.getErrors('sourceElementType'),
+}) }}
+
+{% set activeSource = sourceTypes[field.sourceElementType] ?? sourceTypes['craft\\elements\\Entry'] %}
+
+{{ forms.selectField({
+    label: activeSource.sourceLabel,
+    instructions: activeSource.sourceInstructions,
     id: 'source',
     name: 'source[value]',
-    options: elements,
+    options: activeSource.options,
     value: field.source.value,
     errors: field.getErrors('source'),
 }) }}
 
 {{ forms.hidden({
     name: 'source[type]',
-    value: 'section',
+    id: 'source-type',
+    value: activeSource.sourceType,
 }) }}
 
 {{ forms.checkboxSelectField({
@@ -26,17 +39,25 @@
 }) }}
 
 {% js %}
+    const sourceTypes = {{ sourceTypes | json_encode | raw }};
+    const entryElementType = 'craft\\elements\\Entry';
+    const $sourceElementType = $('#{{ 'source-element-type' | namespaceInputId }}');
     const $source = $('#{{ 'source' | namespaceInputId }}');
+    const $sourceType = $('#{{ 'source-type' | namespaceInputId }}');
     const $entryTypes = $('#{{ 'entry-types' | namespaceInputId }}');
+    const $selectionLabel = $('#{{ 'selectionLabel' | namespaceInputId }}');
 
     const updateEntryTypes = (clearInvalid) => {
         const sectionUid = $source.val();
+        const isEntrySource = $sourceElementType.val() === entryElementType;
+
+        $entryTypes.closest('.field').toggleClass('hidden', !isEntrySource);
 
         $entryTypes.find('.checkbox-select-item').each(function() {
             const $option = $(this);
             const $input = $option.find('input[type="checkbox"]');
             const sectionUids = String($input.data('sections') || '').split(',');
-            const isAvailable = sectionUids.includes(sectionUid);
+            const isAvailable = isEntrySource && sectionUids.includes(sectionUid);
 
             $option.toggleClass('hidden', !isAvailable);
 
@@ -46,8 +67,29 @@
         });
     };
 
+    const updateSource = (preserveValue) => {
+        const source = sourceTypes[$sourceElementType.val()];
+        const currentValue = preserveValue ? $source.val() : null;
+
+        $source.empty();
+        Object.entries(source?.options || {}).forEach(([value, label]) => {
+            $('<option>').attr('value', value).text(label).appendTo($source);
+        });
+
+        if (currentValue && source?.options?.[currentValue]) {
+            $source.val(currentValue);
+        }
+
+        $sourceType.val(source?.sourceType || '');
+        $source.closest('.field').find('> .heading label').text(source?.sourceLabel || '');
+        $source.closest('.field').find('> .instructions').text(source?.sourceInstructions || '');
+        $selectionLabel.attr('placeholder', source?.defaultSelectionLabel || '');
+        updateEntryTypes(!preserveValue);
+    };
+
+    $sourceElementType.on('change', () => updateSource(false));
     $source.on('change', () => updateEntryTypes(true));
-    updateEntryTypes(false);
+    updateSource(true);
 {% endjs %}
 
 {{ forms.selectField({
@@ -66,13 +108,13 @@
     id: 'selectionLabel',
     name: 'selectionLabel',
     value: field.selectionLabel,
-    placeholder: field.defaultSelectionLabel(),
+    placeholder: activeSource.defaultSelectionLabel,
     errors: field.getErrors('selectionLabel'),
 }) }}
 
 {{ forms.textField({
     label: 'Max Relations' | t('app'),
-    instructions: 'The maximum number of entries that may be selected.' | t('manytomany'),
+    instructions: 'The maximum number of elements that may be selected.' | t('manytomany'),
     id: 'max-relations',
     name: 'maxRelations',
     value: field.maxRelations,

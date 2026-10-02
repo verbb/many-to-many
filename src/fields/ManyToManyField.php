@@ -2,24 +2,19 @@
 namespace verbb\manytomany\fields;
 
 use verbb\manytomany\ManyToMany;
+use verbb\manytomany\sources\RelationSourceInterface;
+use verbb\manytomany\sources\RelationSources;
 
 use Craft;
 use craft\base\EagerLoadingFieldInterface;
 use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\base\PreviewableFieldInterface;
-use craft\db\Query;
-use craft\db\Table;
 use craft\elements\ElementCollection;
 use craft\elements\Entry;
 use craft\fields\BaseRelationField;
-use craft\fields\Entries;
-use craft\gql\arguments\elements\Entry as EntryArguments;
-use craft\gql\interfaces\elements\Entry as EntryInterface;
-use craft\gql\resolvers\elements\Entry as EntryResolver;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Cp;
-use craft\helpers\Db;
 use craft\helpers\Gql as GqlHelper;
 use craft\helpers\Html;
 use craft\helpers\StringHelper;
@@ -29,7 +24,6 @@ use craft\services\Gql as GqlService;
 use yii\db\Expression;
 use yii\db\Schema;
 
-use DateTime;
 use WeakMap;
 
 use GraphQL\Type\Definition\Type;
@@ -61,7 +55,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public static function valueType(): string
     {
-        return sprintf('%s[]', Entry::class);
+        return sprintf('%s[]', ElementInterface::class);
     }
 
     public static function queryCondition(
@@ -108,6 +102,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     // =========================================================================
 
     public array $source = [];
+    public string $sourceElementType = Entry::class;
     public array $entryTypes = [];
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
@@ -131,32 +126,33 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public function normalizeValue(mixed $value, ?ElementInterface $element = null): mixed
     {
-        // Already a list of entries (eager-loaded or set programmatically)
+        // Already a list of elements (eager-loaded or set programmatically)
         if (is_array($value) && !array_key_exists('add', $value) && !array_key_exists('delete', $value)) {
-            if (empty($value) || reset($value) instanceof Entry) {
+            if (empty($value) || reset($value) instanceof ElementInterface) {
                 return array_values($value);
             }
         }
 
         $sourceValue = $this->source['value'] ?? null;
+        $adapter = $this->getSourceAdapter();
 
-        if (!$element || !$sourceValue || !$this->singleField) {
+        if (!$element || !$sourceValue || !$this->singleField || !$adapter) {
             return [];
         }
 
-        $relatedSection = Craft::$app->getEntries()->getSectionByUid($sourceValue);
+        $fieldId = Craft::$app->getFields()->getFieldByUid($this->singleField)?->id;
 
-        if (!$relatedSection) {
+        if (!$fieldId || !$adapter->sourceExists($sourceValue)) {
             return [];
         }
 
         // Drafts and revisions retain their own selection in element content. Canonical values continue to
         // reflect the live inverse relations so changes made from either side never leave a stale public value.
         if (($element->getIsDraft() || $element->getIsRevision()) && is_array($value)) {
-            return $this->_entriesForSourceIds($this->_normalizeSourceIds($value), $element);
+            return $adapter->findElements($this->_normalizeSourceIds($value), $element, $sourceValue);
         }
 
-        return ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField);
+        return $adapter->findRelatedElements($element, $sourceValue, $fieldId);
     }
 
     public function normalizeValueFromRequest(mixed $value, ?ElementInterface $element): mixed
@@ -168,8 +164,12 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $valid = is_array($value) || $value === null || $value === '';
         $sourceIdsValid = true;
         $sourceIds = $this->_normalizeSourceIds(is_array($value) ? ($value['add'] ?? []) : [], $sourceIdsValid);
-        $entries = $this->_entriesForSourceIds($sourceIds, $element);
-        $resolvedIds = array_map(fn(Entry $entry) => $entry->id, $entries);
+        $sourceValue = $this->source['value'] ?? '';
+        $adapter = $this->getSourceAdapter();
+        $elements = $adapter && $adapter->sourceExists($sourceValue)
+            ? $adapter->findElements($sourceIds, $element, $sourceValue)
+            : [];
+        $resolvedIds = array_map(fn(ElementInterface $resolvedElement) => $resolvedElement->id, $elements);
 
         $this->_submittedSelections ??= new WeakMap();
         $this->_submittedSelections[$element] = [
@@ -177,7 +177,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             'valid' => $valid && $sourceIdsValid && count($sourceIds) === count($resolvedIds),
         ];
 
-        return $entries;
+        return $elements;
     }
 
     public function serializeValue(mixed $value, ?ElementInterface $element): mixed
@@ -191,7 +191,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
 
         return $this->_normalizeSourceIds(array_map(
-            fn(mixed $item) => $item instanceof Entry ? $item->id : $item,
+            fn(mixed $item) => $item instanceof ElementInterface ? $item->id : $item,
             $value,
         ));
     }
@@ -262,9 +262,15 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     public function validateSource(string $attribute): void
     {
         $sourceValue = $this->source['value'] ?? null;
+        $adapter = $this->getSourceAdapter();
 
-        if (!$sourceValue || !Craft::$app->getEntries()->getSectionByUid($sourceValue)) {
-            $this->addError($attribute, Craft::t('manytomany', 'Select a valid linked section.'));
+        if (
+            !$adapter ||
+            !$sourceValue ||
+            ($this->source['type'] ?? null) !== $adapter->sourceType() ||
+            !$adapter->sourceExists($sourceValue)
+        ) {
+            $this->addError($attribute, Craft::t('manytomany', 'Select a valid linked source.'));
         }
     }
 
@@ -272,14 +278,16 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     {
         $field = $this->singleField ? Craft::$app->getFields()->getFieldByUid($this->singleField) : null;
 
-        if (!$field instanceof Entries || $field->getIsTranslatable(null)) {
-            $this->addError($attribute, Craft::t('manytomany', 'Select a non-translatable Entries field.'));
+        $targetElementType = $field instanceof BaseRelationField ? $field::elementType() : null;
+
+        if (!$field instanceof BaseRelationField || !$targetElementType || !RelationSources::get($targetElementType) || $field->getIsTranslatable(null)) {
+            $this->addError($attribute, Craft::t('manytomany', 'Select a non-translatable relation field for a supported element type.'));
         }
     }
 
     public function validateEntryTypes(string $attribute): void
     {
-        if (empty($this->entryTypes)) {
+        if ($this->sourceElementType !== Entry::class || empty($this->entryTypes)) {
             return;
         }
 
@@ -315,16 +323,31 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         return $entryTypeIds;
     }
 
+    public function getSourceAdapter(): ?RelationSourceInterface
+    {
+        return RelationSources::get($this->sourceElementType);
+    }
+
     public function getSettingsHtml(): string
     {
-        $elements = [];
         $entryTypes = [];
         $fields = [];
+        $sourceTypes = [];
+        $sourceTypeOptions = [];
 
-        // Group the Sections into an array
+        foreach (RelationSources::all() as $elementType => $adapter) {
+            $sourceTypeOptions[$elementType] = $adapter->label();
+            $sourceTypes[$elementType] = [
+                'label' => $adapter->label(),
+                'sourceType' => $adapter->sourceType(),
+                'sourceLabel' => $adapter->sourceLabel(),
+                'sourceInstructions' => $adapter->sourceInstructions(),
+                'options' => $adapter->sourceOptions(),
+                'defaultSelectionLabel' => $adapter->defaultSelectionLabel(),
+            ];
+        }
+
         foreach (Craft::$app->getEntries()->getAllSections() as $section) {
-            $elements[$section->uid] = $section->name;
-
             foreach ($section->getEntryTypes() as $entryType) {
                 $entryTypes[$entryType->uid] ??= [
                     'name' => $entryType->name,
@@ -346,21 +369,23 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             ];
         }
 
-        // Only non-translatable Entries fields can own the inverse relationship.
+        // The inverse relationship must be stored by a non-translatable relation field that targets a core element type.
         foreach (Craft::$app->getFields()->getAllFields() as $field) {
-            if ($field instanceof Entries && !$field->getIsTranslatable(null)) {
-                $fields[$field->uid] = $field->name;
+            $targetElementType = $field instanceof BaseRelationField ? $field::elementType() : null;
+
+            if ($field instanceof BaseRelationField && $targetElementType && RelationSources::get($targetElementType) && !$field->getIsTranslatable(null)) {
+                $fields[$field->uid] = sprintf('%s — %s', $field->name, $field::displayName());
             }
         }
 
-        // Get the Section Source
         if (empty($this->source)) {
-            $this->source = ['type' => '', 'value' => ''];
+            $this->source = ['type' => 'section', 'value' => ''];
         }
 
         return Craft::$app->getView()->renderTemplate('manytomany/field/settings', [
             'field' => $this,
-            'elements' => $elements,
+            'sourceTypes' => $sourceTypes,
+            'sourceTypeOptions' => $sourceTypeOptions,
             'entryTypes' => $entryTypeOptions,
             'fields' => $fields,
             'viewModes' => [
@@ -396,120 +421,56 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     public function getEagerLoadingMap(array $sourceElements): array|null|false
     {
         $sourceValue = $this->source['value'] ?? null;
+        $adapter = $this->getSourceAdapter();
 
-        if (!$sourceValue || !$this->singleField || empty($sourceElements)) {
+        if (!$sourceValue || !$this->singleField || empty($sourceElements) || !$adapter) {
             return false;
         }
 
         $fieldId = Craft::$app->getFields()->getFieldByUid($this->singleField)?->id;
-        $section = Craft::$app->getEntries()->getSectionByUid($sourceValue);
 
-        if (!$fieldId || !$section) {
+        if (!$fieldId || !$adapter->sourceExists($sourceValue)) {
             return false;
         }
 
-        $sourceElementIds = [];
-
-        foreach ($sourceElements as $sourceElement) {
-            $sourceElementIds[] = $sourceElement->id;
-        }
-
-        $sourceSiteId = $sourceElements[0]->siteId;
-
-        // Relations live on the associated Entries field (source = related entry, target = this element)
-        $mapQuery = (new Query())
-            ->select(['relations.targetId as source', 'relations.sourceId as target'])
-            ->from(['relations' => Table::RELATIONS])
-            ->innerJoin(['relatedElements' => Table::ELEMENTS], '[[relatedElements.id]] = [[relations.sourceId]]')
-            ->innerJoin(['relatedEntries' => Table::ENTRIES], '[[relatedEntries.id]] = [[relations.sourceId]]')
-            ->where([
-                'and',
-                [
-                    'relations.fieldId' => $fieldId,
-                    'relations.targetId' => $sourceElementIds,
-                    'relatedElements.draftId' => null,
-                    'relatedElements.revisionId' => null,
-                ],
-                [
-                    'or',
-                    ['relations.sourceSiteId' => $sourceSiteId],
-                    ['relations.sourceSiteId' => null],
-                ],
-            ]);
-
-        $orderBy = [
-            'relatedEntries.postDate' => SORT_DESC,
-            'relatedElements.id' => SORT_DESC,
-        ];
-
-        if ($section->type === Section::TYPE_STRUCTURE && $section->structureId) {
-            $mapQuery->innerJoin(
-                ['relatedStructureElements' => Table::STRUCTUREELEMENTS],
-                [
-                    'and',
-                    '[[relatedStructureElements.elementId]] = [[relations.sourceId]]',
-                    ['relatedStructureElements.structureId' => $section->structureId],
-                ],
-            );
-            $orderBy = ['relatedStructureElements.lft' => SORT_ASC] + $orderBy;
-        }
-
-        $map = $mapQuery
-            ->orderBy($orderBy)
-            ->all();
-
-        $criteria = [
-            'siteId' => $sourceSiteId,
-        ];
-
-        $criteria['sectionId'] = $section->id;
-
-        return [
-            'elementType' => Entry::class,
-            'map' => $map,
-            'criteria' => $criteria,
-        ];
+        return $adapter->getEagerLoadingMap($sourceElements, $sourceValue, $fieldId);
     }
 
     public function getEagerLoadingGqlConditions(): ?array
     {
-        $sourceUid = $this->source['value'] ?? null;
-        $allowedEntities = GqlHelper::extractAllowedEntitiesFromSchema();
-        $sectionUids = $allowedEntities['sections'] ?? [];
+        $sourceValue = $this->source['value'] ?? null;
+        $adapter = $this->getSourceAdapter();
 
-        if (!$sourceUid || empty($sectionUids) || !in_array($sourceUid, $sectionUids, true)) {
+        if (!$sourceValue || !$adapter || !$adapter->sourceExists($sourceValue)) {
             return null;
         }
 
-        $section = Craft::$app->getEntries()->getSectionByUid($sourceUid);
-
-        if (!$section) {
-            return null;
-        }
-
-        return [
-            'sectionId' => [$section->id],
-        ];
+        return $adapter->getEagerLoadingGqlConditions($sourceValue);
     }
 
     public function getContentGqlType(): array
     {
+        $adapter = $this->getSourceAdapter() ?? RelationSources::get(Entry::class);
+        $interface = $adapter->gqlInterface();
+        $arguments = $adapter->gqlArguments();
+        $resolver = $adapter->gqlResolver();
+
         return [
             'name' => $this->handle,
-            'type' => Type::nonNull(Type::listOf(EntryInterface::getType())),
-            'args' => EntryArguments::getArguments(),
-            'resolve' => function($source, $arguments, $context, $resolveInfo) {
+            'type' => Type::nonNull(Type::listOf($interface::getType())),
+            'args' => $arguments::getArguments(),
+            'resolve' => function($source, $arguments, $context, $resolveInfo) use ($resolver) {
                 $target = $source->{$this->handle};
 
                 if (empty($arguments)) {
                     return $target;
                 }
 
-                // Convert the already-resolved entries to an entries query when field arguments need to be applied.
+                // Convert the already-resolved elements to a query when field arguments need to be applied.
                 $arguments['id'] = ArrayHelper::getColumn($target, 'id');
                 $arguments['siteId'] = $target[0]->siteId ?? null;
 
-                return EntryResolver::resolve(null, $arguments, $context, $resolveInfo);
+                return $resolver::resolve(null, $arguments, $context, $resolveInfo);
             },
             'complexity' => GqlHelper::relatedArgumentComplexity(GqlService::GRAPHQL_COMPLEXITY_EAGER_LOAD),
         ];
@@ -522,6 +483,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
+        $rules[] = [['sourceElementType'], 'in', 'range' => array_keys(RelationSources::all())];
         $rules[] = [['source'], 'validateSource'];
         $rules[] = [['singleField'], 'validateAssociatedField'];
         $rules[] = [['entryTypes'], 'each', 'rule' => ['string']];
@@ -552,39 +514,50 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
         $singleFieldModel = Craft::$app->getFields()->getFieldByUid($this->singleField);
 
-        if ($singleFieldModel && $singleFieldModel->getIsTranslatable($element)) {
+        if ($singleFieldModel && $singleFieldModel->getIsTranslatable(null)) {
             return Craft::t('manytomany', 'The Many to Many plugin does not currently work with localized content.');
         }
 
-        // For this iteration of the plugin, everything is a SECTION, but it's setup, so it can be
-        // refactored in the future to allow for multiple types
-        if (!($element instanceof Entry)) {
-            return Craft::t('manytomany', 'For this version of the Many to Many plugin, you can only use this field with Entries.');
+        $adapter = $this->getSourceAdapter();
+        $sourceValue = $this->source['value'] ?? null;
+        $targetElementType = $singleFieldModel instanceof BaseRelationField ? $singleFieldModel::elementType() : null;
+
+        if (!$adapter || !$sourceValue || !$adapter->sourceExists($sourceValue)) {
+            return Craft::t('manytomany', 'This relationship field does not have a valid linked source.');
+        }
+
+        if (!$singleFieldModel instanceof BaseRelationField || !$targetElementType || !$element instanceof $targetElementType) {
+            return Craft::t('manytomany', 'The associated field cannot relate to this element type.');
         }
 
         // Match Craft relation fields: CP input includes disabled/non-live related entries.
         // Keep posted values as-is so validation failures don't lose the current selection.
-        $sourceValue = $this->source['value'] ?? null;
-        $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
-        $entryTypeIds = $relatedSection ? $this->getAllowedEntryTypeIds($relatedSection) : [];
+        $relatedSection = $this->sourceElementType === Entry::class
+            ? Craft::$app->getEntries()->getSectionByUid($sourceValue)
+            : null;
+        $criteria = $adapter->selectorCriteria($sourceValue);
+
+        if ($relatedSection && !empty($this->entryTypes)) {
+            $criteria['typeId'] = $this->getAllowedEntryTypeIds($relatedSection) ?: [0];
+        }
 
         if (
-            $relatedSection &&
             $this->singleField &&
             !$element->getIsDraft() &&
             !$element->getIsRevision() &&
             !$element->isFieldDirty($this->handle)
         ) {
-            $value = ManyToMany::$plugin->getService()->getRelatedEntries($element, $relatedSection, $this->singleField, true);
+            $value = $adapter->findRelatedElements($element, $sourceValue, $singleFieldModel->id, true);
         }
 
         return $view->renderTemplate('manytomany/field/input', [
             'name' => $this->handle,
             'value' => $value,
             'id' => Html::id($this->handle),
-            'section' => $this->source['value'] ?? null,
-            'entryTypeIds' => empty($this->entryTypes) ? [] : ($entryTypeIds ?: [0]),
-            'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
+            'elementType' => $adapter->elementType(),
+            'sources' => $adapter->selectorSources($sourceValue),
+            'criteria' => empty($criteria) ? null : $criteria,
+            'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : $adapter->defaultSelectionLabel(),
             'maxRelations' => $this->maxRelations,
             'viewMode' => $inline ? BaseRelationField::VIEW_MODE_LIST_INLINE : $this->viewMode,
         ]);
@@ -594,33 +567,15 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     // Private Methods
     // =========================================================================
 
-    private function _entriesForSourceIds(array $sourceIds, ElementInterface $element): array
-    {
-        $sourceValue = $this->source['value'] ?? null;
-        $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
-
-        if (!$relatedSection || empty($sourceIds)) {
-            return [];
-        }
-
-        return Entry::find()
-            ->id($sourceIds)
-            ->siteId($element->siteId)
-            ->status(null)
-            ->section($relatedSection)
-            ->fixedOrder()
-            ->all();
-    }
-
     private function _selectionIsValid(ElementInterface $element, array $selection): bool
     {
         if (!$selection['valid']) {
-            $element->addError($this->handle, Craft::t('manytomany', 'One or more selected entries are invalid.'));
+            $element->addError($this->handle, Craft::t('manytomany', 'One or more selected elements are invalid.'));
             return false;
         }
 
         if ($this->maxRelations !== null && count($selection['ids']) > $this->maxRelations) {
-            $element->addError($this->handle, Craft::t('manytomany', 'Select no more than {limit, number} {limit, plural, one{entry} other{entries}}.', [
+            $element->addError($this->handle, Craft::t('manytomany', 'Select no more than {limit, number} {limit, plural, one{element} other{elements}}.', [
                 'limit' => $this->maxRelations,
             ]));
             return false;
@@ -664,9 +619,9 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     private static function existsQueryCondition(self $field): ?array
     {
         $sourceValue = $field->source['value'] ?? null;
-        $section = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+        $adapter = $field->getSourceAdapter();
 
-        if (!$field->singleField || !$section) {
+        if (!$field->singleField || !$sourceValue || !$adapter || !$adapter->sourceExists($sourceValue)) {
             return null;
         }
 
@@ -676,44 +631,11 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return null;
         }
 
-        $ns = sprintf('%s_%s', $field->handle, StringHelper::randomString(5));
-        $now = new DateTime();
-        $now->setTime((int)$now->format('H'), (int)$now->format('i'), 59);
-        $currentTimeDb = Db::prepareDateForDb($now);
-
-        $query = (new Query())
-            ->from(["relations_$ns" => Table::RELATIONS])
-            ->innerJoin(["elements_$ns" => Table::ELEMENTS], "[[elements_$ns.id]] = [[relations_$ns.sourceId]]")
-            ->innerJoin(["entries_$ns" => Table::ENTRIES], "[[entries_$ns.id]] = [[elements_$ns.id]]")
-            ->innerJoin(
-                ["elements_sites_$ns" => Table::ELEMENTS_SITES],
-                "[[elements_sites_$ns.elementId]] = [[elements_$ns.id]] AND [[elements_sites_$ns.siteId]] = [[elements_sites.siteId]]",
-            )
-            ->where([
-                'and',
-                "[[relations_$ns.targetId]] = [[elements.id]]",
-                [
-                    "relations_$ns.fieldId" => $associatedFieldId,
-                    "elements_$ns.dateDeleted" => null,
-                    "elements_$ns.draftId" => null,
-                    "elements_$ns.revisionId" => null,
-                    "elements_$ns.enabled" => true,
-                    "elements_sites_$ns.enabled" => true,
-                    "entries_$ns.sectionId" => $section->id,
-                ],
-                ['<=', "entries_$ns.postDate", $currentTimeDb],
-                [
-                    'or',
-                    ["entries_$ns.expiryDate" => null],
-                    ['>', "entries_$ns.expiryDate", $currentTimeDb],
-                ],
-                [
-                    'or',
-                    ["relations_$ns.sourceSiteId" => null],
-                    ["relations_$ns.sourceSiteId" => new Expression('[[elements_sites.siteId]]')],
-                ],
-            ]);
-
-        return ['exists', $query];
+        return $adapter->existsQueryCondition(
+            $associatedFieldId,
+            $sourceValue,
+            sprintf('%s_%s', $field->handle, StringHelper::randomString(5)),
+        );
     }
+
 }

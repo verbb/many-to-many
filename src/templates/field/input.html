@@ -7,9 +7,9 @@
 <div class="js-mtm-field">
     {{ forms.elementSelect({
         name: name ~ '[add]',
-        elementType: 'craft\\elements\\Entry',
-        sources: section ? ['section:' ~ section] : [],
-        criteria: entryTypeIds ? { typeId: entryTypeIds } : null,
+        elementType: elementType,
+        sources: sources,
+        criteria: criteria,
         selectionLabel: selectionLabel,
         class: 'js-mtm-element-select',
         elements: value,
