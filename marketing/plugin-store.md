@@ -1,12 +1,12 @@
-Many to Many keeps a Craft relationship editable from either side. Connect related elements once, then let authors manage the association from whichever record they are already working on.
+Many to Many keeps an entry relationship editable from either side. Connect related entries once, then let authors manage the association from whichever entry they are already working on.
 
-Configure the paired element field and let the plugin synchronise changes across both sides. Authors can connect or remove related content from the place that makes sense without leaving conflicting relationship data behind.
+Configure a paired Entries field and Many to Many field. When an author changes either side, the plugin updates the same underlying Craft relation on the linked entries.
 
 ## Features
 
-- Add or remove a relationship from either participating element.
-- Update the paired field when one side of the relationship changes.
-- Use familiar element-selection controls in the authoring interface.
-- Query related Craft elements with established template patterns.
-- Query the paired relationships in headless implementations.
-- Define which field represents the reverse side of the association.
+- Add or remove relationships from either participating entry.
+- Keep the paired Entries field in sync when the reverse field changes.
+- Use Craft’s familiar entry-selection controls.
+- Access related entries directly in Twig or with `relatedTo()` queries.
+- Eager-load relationships and query them through GraphQL.
+- Choose the linked section and Entries field that own the relationship.
