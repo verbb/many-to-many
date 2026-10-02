@@ -4,6 +4,7 @@
 
 ### Changed
 - Replaced the CodeKit JavaScript build with Vite and moved field assets to `src/web`.
+- Expanded usage documentation for templates, GraphQL and field constraints.
 
 ### Fixed
 - Fixed a medium-severity improper authorization vulnerability.
