@@ -22,6 +22,7 @@ use craft\helpers\Db;
 use craft\helpers\Gql as GqlHelper;
 use craft\helpers\Html;
 use craft\helpers\StringHelper;
+use craft\models\Section;
 use craft\services\Gql as GqlService;
 
 use yii\db\Expression;
@@ -333,8 +334,9 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
 
         $fieldId = Craft::$app->getFields()->getFieldByUid($this->singleField)?->id;
+        $section = Craft::$app->getEntries()->getSectionByUid($sourceValue);
 
-        if (!$fieldId) {
+        if (!$fieldId || !$section) {
             return false;
         }
 
@@ -347,10 +349,11 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $sourceSiteId = $sourceElements[0]->siteId;
 
         // Relations live on the associated Entries field (source = related entry, target = this element)
-        $map = (new Query())
+        $mapQuery = (new Query())
             ->select(['relations.targetId as source', 'relations.sourceId as target'])
             ->from(['relations' => Table::RELATIONS])
             ->innerJoin(['relatedElements' => Table::ELEMENTS], '[[relatedElements.id]] = [[relations.sourceId]]')
+            ->innerJoin(['relatedEntries' => Table::ENTRIES], '[[relatedEntries.id]] = [[relations.sourceId]]')
             ->where([
                 'and',
                 [
@@ -364,19 +367,34 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
                     ['relations.sourceSiteId' => $sourceSiteId],
                     ['relations.sourceSiteId' => null],
                 ],
-            ])
-            ->orderBy(['relations.sortOrder' => SORT_ASC])
+            ]);
+
+        $orderBy = [
+            'relatedEntries.postDate' => SORT_DESC,
+            'relatedElements.id' => SORT_DESC,
+        ];
+
+        if ($section->type === Section::TYPE_STRUCTURE && $section->structureId) {
+            $mapQuery->innerJoin(
+                ['relatedStructureElements' => Table::STRUCTUREELEMENTS],
+                [
+                    'and',
+                    '[[relatedStructureElements.elementId]] = [[relations.sourceId]]',
+                    ['relatedStructureElements.structureId' => $section->structureId],
+                ],
+            );
+            $orderBy = ['relatedStructureElements.lft' => SORT_ASC] + $orderBy;
+        }
+
+        $map = $mapQuery
+            ->orderBy($orderBy)
             ->all();
 
         $criteria = [
             'siteId' => $sourceSiteId,
         ];
 
-        $section = Craft::$app->getEntries()->getSectionByUid($sourceValue);
-
-        if ($section) {
-            $criteria['sectionId'] = $section->id;
-        }
+        $criteria['sectionId'] = $section->id;
 
         return [
             'elementType' => Entry::class,

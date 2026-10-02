@@ -11,6 +11,7 @@
 - Fixed Many-to-Many selections being discarded after validation errors or when reopening drafts.
 - Fixed deletion state being shared between multiple Many-to-Many fields.
 - Prevented invalid Many-to-Many field configurations from being saved.
+- Fixed eager-loaded Many-to-Many values returning entries in a different order.
 - Fixed a PHP 8.4 deprecation warning.
 - Improved eager loading and GraphQL performance for Many-to-Many fields.
 
