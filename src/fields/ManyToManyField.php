@@ -123,7 +123,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         parent::__construct($config);
     }
 
-    public function normalizeValue(mixed $value, ElementInterface $element = null): mixed
+    public function normalizeValue(mixed $value, ?ElementInterface $element = null): mixed
     {
         // Already a list of entries (eager-loaded or set programmatically)
         if (is_array($value) && !array_key_exists('add', $value) && !array_key_exists('delete', $value)) {
