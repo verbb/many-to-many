@@ -12,6 +12,7 @@ use craft\db\Query;
 use craft\db\Table;
 use craft\elements\ElementCollection;
 use craft\elements\Entry;
+use craft\fields\Entries;
 use craft\gql\arguments\elements\Entry as EntryArguments;
 use craft\gql\interfaces\elements\Entry as EntryInterface;
 use craft\gql\resolvers\elements\Entry as EntryResolver;
@@ -255,6 +256,24 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         return true;
     }
 
+    public function validateSource(string $attribute): void
+    {
+        $sourceValue = $this->source['value'] ?? null;
+
+        if (!$sourceValue || !Craft::$app->getEntries()->getSectionByUid($sourceValue)) {
+            $this->addError($attribute, Craft::t('manytomany', 'Select a valid linked section.'));
+        }
+    }
+
+    public function validateAssociatedField(string $attribute): void
+    {
+        $field = $this->singleField ? Craft::$app->getFields()->getFieldByUid($this->singleField) : null;
+
+        if (!$field instanceof Entries || $field->getIsTranslatable(null)) {
+            $this->addError($attribute, Craft::t('manytomany', 'Select a non-translatable Entries field.'));
+        }
+    }
+
     public function getSettingsHtml(): string
     {
         $elements = [];
@@ -265,9 +284,11 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             $elements[$section->uid] = $section->name;
         }
 
-        // Group Field Types into an array
+        // Only non-translatable Entries fields can own the inverse relationship.
         foreach (Craft::$app->getFields()->getAllFields() as $field) {
-            $fields[$field->uid] = $field->name;
+            if ($field instanceof Entries && !$field->getIsTranslatable(null)) {
+                $fields[$field->uid] = $field->name;
+            }
         }
 
         // Get the Section Source
@@ -411,6 +432,15 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     // Protected Methods
     // =========================================================================
+
+    protected function defineRules(): array
+    {
+        $rules = parent::defineRules();
+        $rules[] = [['source'], 'validateSource'];
+        $rules[] = [['singleField'], 'validateAssociatedField'];
+
+        return $rules;
+    }
 
     protected function inputHtml(mixed $value, ?ElementInterface $element, bool $inline): string
     {

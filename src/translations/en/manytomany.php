@@ -10,5 +10,7 @@ return [
     'For this version of the Many to Many plugin, you can only use this field with Entries.' => 'For this version of the Many to Many plugin, you can only use this field with Entries.',
     'The Many to Many plugin does not currently work with localized content.' => 'The Many to Many plugin does not currently work with localized content.',
     'To use the Many to Many plugin you need associate it with a related field.' => 'To use the Many to Many plugin you need associate it with a related field.',
-    'To use the Many to Many plugin you need to set a source.' => 'To use the Many to Many plugin you need to set a source.'
+    'To use the Many to Many plugin you need to set a source.' => 'To use the Many to Many plugin you need to set a source.',
+    'Select a valid linked section.' => 'Select a valid linked section.',
+    'Select a non-translatable Entries field.' => 'Select a non-translatable Entries field.',
 ];
