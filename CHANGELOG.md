@@ -9,6 +9,7 @@
 - Fixed a medium-severity improper authorization vulnerability.
 - Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
 - Fixed Many-to-Many selections being discarded after validation errors or when reopening drafts.
+- Fixed deletion state being shared between multiple Many-to-Many fields.
 - Fixed a PHP 8.4 deprecation warning.
 - Improved eager loading and GraphQL performance for Many-to-Many fields.
 
