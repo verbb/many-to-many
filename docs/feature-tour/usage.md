@@ -9,6 +9,7 @@ Create an Entries field called Related Ingredients (`relatedIngredients`) that s
 Next, create a Many to Many field called Related Recipes (`relatedRecipes`) and configure it with these settings:
 
 - **Linked Section** — choose Recipes, the section containing the entries that own the Related Ingredients field.
+- **Linked Entry Types** — optionally limit selection to particular entry types within the linked section.
 - **Associated Field** — choose Related Ingredients, the Entries field that stores the relation.
 - **Max Relations** — optionally limit how many linked entries an author can select from this side of the relationship.
 - **View Mode** — choose whether authors see the selected entries as a list, inline list, cards or a card grid.

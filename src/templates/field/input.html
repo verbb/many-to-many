@@ -9,6 +9,7 @@
         name: name ~ '[add]',
         elementType: 'craft\\elements\\Entry',
         sources: section ? ['section:' ~ section] : [],
+        criteria: entryTypeIds ? { typeId: entryTypeIds } : null,
         selectionLabel: selectionLabel,
         class: 'js-mtm-element-select',
         elements: value,

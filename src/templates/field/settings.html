@@ -15,6 +15,41 @@
     value: 'section',
 }) }}
 
+{{ forms.checkboxSelectField({
+    label: 'Linked Entry Types' | t('manytomany'),
+    instructions: 'Limit selection to specific entry types from the linked section. Leave all options unchecked to allow every entry type.' | t('manytomany'),
+    id: 'entry-types',
+    name: 'entryTypes',
+    options: entryTypes,
+    values: field.entryTypes,
+    errors: field.getErrors('entryTypes'),
+}) }}
+
+{% js %}
+    const $source = $('#{{ 'source' | namespaceInputId }}');
+    const $entryTypes = $('#{{ 'entry-types' | namespaceInputId }}');
+
+    const updateEntryTypes = (clearInvalid) => {
+        const sectionUid = $source.val();
+
+        $entryTypes.find('.checkbox-select-item').each(function() {
+            const $option = $(this);
+            const $input = $option.find('input[type="checkbox"]');
+            const sectionUids = String($input.data('sections') || '').split(',');
+            const isAvailable = sectionUids.includes(sectionUid);
+
+            $option.toggleClass('hidden', !isAvailable);
+
+            if (clearInvalid && !isAvailable) {
+                $input.prop('checked', false);
+            }
+        });
+    };
+
+    $source.on('change', () => updateEntryTypes(true));
+    updateEntryTypes(false);
+{% endjs %}
+
 {{ forms.selectField({
     label: 'Associated Field' | t('manytomany'),
     instructions: 'This is the field you are using to create the initial association. This has to be created first.' | t('manytomany'),

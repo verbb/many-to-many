@@ -86,6 +86,18 @@ class Service extends Component
         }
 
         $currentEntries = $this->_indexEntries($this->getRelatedEntries($element, $section, $fieldType->singleField, true));
+
+        if (!empty($fieldType->entryTypes)) {
+            $allowedEntryTypeIds = array_flip($fieldType->getAllowedEntryTypeIds($section));
+
+            foreach ($desiredEntries as $sourceId => $desiredEntry) {
+                if (!isset($currentEntries[$sourceId]) && !isset($allowedEntryTypeIds[$desiredEntry->typeId])) {
+                    $element->addError($fieldType->handle, Craft::t('manytomany', 'One or more selected entry types are not allowed.'));
+                    return null;
+                }
+            }
+        }
+
         $toAdd = array_diff_key($desiredEntries, $currentEntries);
         $toDelete = array_diff_key($currentEntries, $desiredEntries);
         $modifiedEntries = $toAdd + $toDelete;

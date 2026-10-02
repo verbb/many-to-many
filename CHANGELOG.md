@@ -4,6 +4,7 @@
 
 ### Added
 - Added maximum-relations and view-mode settings for Many to Many fields.
+- Added optional entry-type restrictions for linked sections.
 
 ### Changed
 - Replaced the CodeKit JavaScript build with Vite and moved field assets to `src/web`.

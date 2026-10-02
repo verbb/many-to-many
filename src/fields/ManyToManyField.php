@@ -108,6 +108,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
     // =========================================================================
 
     public array $source = [];
+    public array $entryTypes = [];
     public ?string $singleField = null;
     public ?string $selectionLabel = null;
     public ?int $maxRelations = null;
@@ -276,14 +277,73 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
     }
 
+    public function validateEntryTypes(string $attribute): void
+    {
+        if (empty($this->entryTypes)) {
+            return;
+        }
+
+        $sourceValue = $this->source['value'] ?? null;
+        $section = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+
+        if (!$section) {
+            return;
+        }
+
+        $sectionEntryTypeUids = array_map(fn($entryType) => $entryType->uid, $section->getEntryTypes());
+
+        if (!empty(array_diff($this->entryTypes, $sectionEntryTypeUids))) {
+            $this->addError($attribute, Craft::t('manytomany', 'Select entry types that belong to the linked section.'));
+        }
+    }
+
+    public function getAllowedEntryTypeIds(Section $section): array
+    {
+        if (empty($this->entryTypes)) {
+            return [];
+        }
+
+        $selectedEntryTypes = array_flip($this->entryTypes);
+        $entryTypeIds = [];
+
+        foreach ($section->getEntryTypes() as $entryType) {
+            if (isset($selectedEntryTypes[$entryType->uid])) {
+                $entryTypeIds[] = $entryType->id;
+            }
+        }
+
+        return $entryTypeIds;
+    }
+
     public function getSettingsHtml(): string
     {
         $elements = [];
+        $entryTypes = [];
         $fields = [];
 
         // Group the Sections into an array
         foreach (Craft::$app->getEntries()->getAllSections() as $section) {
             $elements[$section->uid] = $section->name;
+
+            foreach ($section->getEntryTypes() as $entryType) {
+                $entryTypes[$entryType->uid] ??= [
+                    'name' => $entryType->name,
+                    'sectionUids' => [],
+                ];
+                $entryTypes[$entryType->uid]['sectionUids'][] = $section->uid;
+            }
+        }
+
+        $entryTypeOptions = [];
+
+        foreach ($entryTypes as $entryTypeUid => $entryType) {
+            $entryTypeOptions[] = [
+                'label' => $entryType['name'],
+                'value' => $entryTypeUid,
+                'data' => [
+                    'sections' => implode(',', $entryType['sectionUids']),
+                ],
+            ];
         }
 
         // Only non-translatable Entries fields can own the inverse relationship.
@@ -301,6 +361,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         return Craft::$app->getView()->renderTemplate('manytomany/field/settings', [
             'field' => $this,
             'elements' => $elements,
+            'entryTypes' => $entryTypeOptions,
             'fields' => $fields,
             'viewModes' => [
                 BaseRelationField::VIEW_MODE_LIST => Craft::t('app', 'List'),
@@ -463,6 +524,8 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $rules = parent::defineRules();
         $rules[] = [['source'], 'validateSource'];
         $rules[] = [['singleField'], 'validateAssociatedField'];
+        $rules[] = [['entryTypes'], 'each', 'rule' => ['string']];
+        $rules[] = [['entryTypes'], 'validateEntryTypes'];
         $rules[] = [['maxRelations'], 'number', 'integerOnly' => true, 'min' => 1, 'skipOnEmpty' => true];
         $rules[] = [['viewMode'], 'in', 'range' => [
             BaseRelationField::VIEW_MODE_LIST,
@@ -503,6 +566,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         // Keep posted values as-is so validation failures don't lose the current selection.
         $sourceValue = $this->source['value'] ?? null;
         $relatedSection = $sourceValue ? Craft::$app->getEntries()->getSectionByUid($sourceValue) : null;
+        $entryTypeIds = $relatedSection ? $this->getAllowedEntryTypeIds($relatedSection) : [];
 
         if (
             $relatedSection &&
@@ -519,6 +583,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             'value' => $value,
             'id' => Html::id($this->handle),
             'section' => $this->source['value'] ?? null,
+            'entryTypeIds' => empty($this->entryTypes) ? [] : ($entryTypeIds ?: [0]),
             'selectionLabel' => $this->selectionLabel ? Craft::t('site', $this->selectionLabel) : static::defaultSelectionLabel(),
             'maxRelations' => $this->maxRelations,
             'viewMode' => $inline ? BaseRelationField::VIEW_MODE_LIST_INLINE : $this->viewMode,
