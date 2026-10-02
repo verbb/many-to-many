@@ -1,5 +1,5 @@
 <?php
-namespace verbb\manytomany\assetbundles\field;
+namespace verbb\manytomany\web\assets\field;
 
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset;
@@ -11,7 +11,7 @@ class ManyToManyFieldAsset extends AssetBundle
 
     public function init(): void
     {
-        $this->sourcePath = __DIR__ . '/dist';
+        $this->sourcePath = '@verbb/manytomany/web/assets/field/dist';
 
         $this->depends = [
             CpAsset::class,

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Replaced the CodeKit JavaScript build with Vite and moved field assets to `src/web`.
+
 ### Fixed
 - Fixed a medium-severity improper authorization vulnerability.
 - Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
