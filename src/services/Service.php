@@ -6,14 +6,11 @@ use verbb\manytomany\fields\ManyToManyField;
 use Craft;
 use craft\base\Component;
 use craft\base\ElementInterface;
-use craft\db\Query;
-use craft\db\Table;
 use craft\elements\ElementCollection;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\Entry;
 use craft\errors\InvalidElementException;
 use craft\fields\Entries;
-use craft\helpers\Db;
 use craft\helpers\ElementHelper;
 use craft\models\Section;
 
@@ -37,20 +34,23 @@ class Service extends Component
      */
     public function getRelatedEntries(ElementInterface $element, Section $section, string $fieldUid, bool $anyStatus = false): array
     {
-        $query = Entry::find();
+        $fieldId = Craft::$app->getFields()->getFieldByUid($fieldUid)?->id;
 
-        $fieldId = Db::idByUid(Table::FIELDS, $fieldUid);
+        if (!$fieldId) {
+            return [];
+        }
 
-        $query->section = $section;
-        $query->limit = null;
-        $query->siteId = $element->siteId;
-        $query->relatedTo = [
-            'targetElement' => $element,
-            'field' => $fieldId,
-        ];
+        $query = Entry::find()
+            ->section($section)
+            ->limit(null)
+            ->siteId($element->siteId)
+            ->relatedTo([
+                'targetElement' => $element,
+                'field' => $fieldId,
+            ]);
 
         if ($anyStatus) {
-            $query->status = null;
+            $query->status(null);
         }
 
         return $query->all();

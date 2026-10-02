@@ -311,7 +311,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return false;
         }
 
-        $fieldId = Db::idByUid(Table::FIELDS, $this->singleField);
+        $fieldId = Craft::$app->getFields()->getFieldByUid($this->singleField)?->id;
 
         if (!$fieldId) {
             return false;
@@ -327,21 +327,24 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
         // Relations live on the associated Entries field (source = related entry, target = this element)
         $map = (new Query())
-            ->select(['targetId as source', 'sourceId as target'])
-            ->from([Table::RELATIONS])
+            ->select(['relations.targetId as source', 'relations.sourceId as target'])
+            ->from(['relations' => Table::RELATIONS])
+            ->innerJoin(['relatedElements' => Table::ELEMENTS], '[[relatedElements.id]] = [[relations.sourceId]]')
             ->where([
                 'and',
                 [
-                    'fieldId' => $fieldId,
-                    'targetId' => $sourceElementIds,
+                    'relations.fieldId' => $fieldId,
+                    'relations.targetId' => $sourceElementIds,
+                    'relatedElements.draftId' => null,
+                    'relatedElements.revisionId' => null,
                 ],
                 [
                     'or',
-                    ['sourceSiteId' => $sourceSiteId],
-                    ['sourceSiteId' => null],
+                    ['relations.sourceSiteId' => $sourceSiteId],
+                    ['relations.sourceSiteId' => null],
                 ],
             ])
-            ->orderBy(['sortOrder' => SORT_ASC])
+            ->orderBy(['relations.sortOrder' => SORT_ASC])
             ->all();
 
         $criteria = [
@@ -389,9 +392,13 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             'type' => Type::nonNull(Type::listOf(EntryInterface::getType())),
             'args' => EntryArguments::getArguments(),
             'resolve' => function($source, $arguments, $context, $resolveInfo) {
-                // Convert the already-resolved entries to an entries query. This is because `normalizeValue`
-                // doesn't return the traditional EntryElementQuery value.
                 $target = $source->{$this->handle};
+
+                if (empty($arguments)) {
+                    return $target;
+                }
+
+                // Convert the already-resolved entries to an entries query when field arguments need to be applied.
                 $arguments['id'] = ArrayHelper::getColumn($target, 'id');
                 $arguments['siteId'] = $target[0]->siteId ?? null;
 
@@ -517,7 +524,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return null;
         }
 
-        $associatedFieldId = Db::idByUid(Table::FIELDS, $field->singleField);
+        $associatedFieldId = Craft::$app->getFields()->getFieldByUid($field->singleField)?->id;
 
         if (!$associatedFieldId) {
             return null;

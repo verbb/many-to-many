@@ -7,6 +7,7 @@
 - Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
 - Fixed Many-to-Many selections being discarded after validation errors or when reopening drafts.
 - Fixed a PHP 8.4 deprecation warning.
+- Improved eager loading and GraphQL performance for Many-to-Many fields.
 
 ## 4.0.7 - 2026-09-14
 
