@@ -17,6 +17,7 @@ use craft\helpers\ArrayHelper;
 use craft\helpers\Cp;
 use craft\helpers\Gql as GqlHelper;
 use craft\helpers\Html;
+use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\models\Section;
 use craft\services\Gql as GqlService;
@@ -25,11 +26,19 @@ use yii\db\Expression;
 use yii\db\Schema;
 
 use WeakMap;
+use Throwable;
 
 use GraphQL\Type\Definition\Type;
 
 class ManyToManyField extends Field implements EagerLoadingFieldInterface, PreviewableFieldInterface
 {
+    // Constants
+    // =========================================================================
+
+    private const AUTHORIZATION_PURPOSE = 'manytomany.draft-selection';
+    private const AUTHORIZATION_VERSION = 1;
+
+
     // Static Methods
     // =========================================================================
 
@@ -111,6 +120,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     private ?WeakMap $_submittedSelections = null;
     private ?WeakMap $_preparedChanges = null;
+    private ?WeakMap $_storedAuthorizations = null;
 
 
     // Public Methods
@@ -131,6 +141,24 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             if (empty($value) || reset($value) instanceof ElementInterface) {
                 return array_values($value);
             }
+        }
+
+        $authorization = null;
+
+        if ($element?->getIsDraft() && is_array($value) && array_key_exists('ids', $value)) {
+            $sourceIdsValid = true;
+            $sourceIds = $this->_normalizeSourceIds($value['ids'], $sourceIdsValid);
+            $token = is_string($value['authorization'] ?? null) ? $value['authorization'] : null;
+            $keys = array_keys($value);
+            sort($keys);
+
+            if ($sourceIdsValid && $token !== null && $keys === ['authorization', 'ids']) {
+                $authorization = $this->_validateDraftAuthorization($element, $sourceIds, $token);
+            }
+
+            $this->_storedAuthorizations ??= new WeakMap();
+            $this->_storedAuthorizations[$element] = $authorization;
+            $value = $sourceIds;
         }
 
         $sourceValue = $this->source['value'] ?? null;
@@ -188,6 +216,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $this->_submittedSelections[$element] = [
             'ids' => array_keys($selectionElements),
             'valid' => $selectionIsValid,
+            'authorization' => $this->_authorizationForIds($element, array_keys($selectionElements)),
         ];
 
         // Hidden existing relations remain server-side for serialization, then presentation filters them again.
@@ -210,6 +239,29 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         ));
     }
 
+    public function serializeValueForDb(mixed $value, ElementInterface $element): mixed
+    {
+        $ids = $this->serializeValue($value, $element);
+
+        if (!$element->getIsDraft()) {
+            return $ids;
+        }
+
+        $selection = $this->_submittedSelections[$element] ?? null;
+        $authorization = is_array($selection) && $selection['ids'] === $ids
+            ? ($selection['authorization'] ?? null)
+            : $this->_authorizationForIds($element, $ids);
+
+        if (!is_string($authorization)) {
+            return $ids;
+        }
+
+        return [
+            'ids' => $ids,
+            'authorization' => $authorization,
+        ];
+    }
+
     public function beforeElementSave(ElementInterface $element, bool $isNew): bool
     {
         if ($this->_preparedChanges !== null && isset($this->_preparedChanges[$element])) {
@@ -223,8 +275,28 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         if ($element->getIsDraft()) {
             $selection = $this->_submittedSelections[$element] ?? null;
 
-            if ($selection !== null && !$this->_selectionIsValid($element, $selection)) {
+            if ($selection === null) {
+                return true;
+            }
+
+            if (!$this->_selectionIsValid($element, $selection)) {
                 return false;
+            }
+
+            if (is_string($selection['authorization'] ?? null)) {
+                return true;
+            }
+
+            $user = Craft::$app->getUser()->getIdentity();
+            $changes = ManyToMany::$plugin->getService()->prepareRelationshipChanges($this, $element, $selection['ids'], $user);
+
+            if ($changes === null) {
+                return false;
+            }
+
+            if ($user) {
+                $selection['authorization'] = $this->_createDraftAuthorization($element, $selection['ids'], $user->id);
+                $this->_submittedSelections[$element] = $selection;
             }
 
             return true;
@@ -234,23 +306,31 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             return true;
         }
 
+        $service = ManyToMany::$plugin->getService();
+        $draftChanges = $service->getDraftApplicationChanges($this, $element);
+
+        if (
+            $draftChanges === null &&
+            $element->duplicateOf?->getIsDraft() &&
+            $element->isFieldDirty($this->handle)
+        ) {
+            if (!$this->prepareDraftApplication($element->duplicateOf)) {
+                return false;
+            }
+
+            $draftChanges = $service->getDraftApplicationChanges($this, $element);
+        }
+
+        if ($draftChanges !== null) {
+            $this->_preparedChanges ??= new WeakMap();
+            $this->_preparedChanges[$element] = $draftChanges;
+            return true;
+        }
+
         $selection = $this->_submittedSelections[$element] ?? null;
 
         if ($selection !== null) {
             unset($this->_submittedSelections[$element]);
-        }
-
-        // Applying a draft duplicates its field values onto the canonical element. Only consume the stored
-        // selection when Craft marked this field as changed on that exact draft.
-        if (
-            $selection === null &&
-            $element->duplicateOf?->getIsDraft() &&
-            $element->isFieldDirty($this->handle)
-        ) {
-            $selection = [
-                'ids' => $this->serializeValue($element->getFieldValue($this->handle), $element),
-                'valid' => true,
-            ];
         }
 
         if ($selection === null) {
@@ -269,6 +349,42 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
         $this->_preparedChanges ??= new WeakMap();
         $this->_preparedChanges[$element] = $changes;
+
+        return true;
+    }
+
+    public function getAuthorizationIdentity(): string
+    {
+        if (isset($this->layoutElement->uid)) {
+            return $this->layoutElement->uid;
+        }
+
+        return $this->uid ?? $this->handle;
+    }
+
+    public function prepareDraftApplication(ElementInterface $draft): bool
+    {
+        $value = $draft->getFieldValue($this->handle);
+        $ids = $this->serializeValue($value, $draft);
+        $authorization = $this->_storedAuthorizations[$draft] ?? null;
+
+        if (!is_array($authorization) || $authorization['ids'] !== $ids) {
+            return $this->_addDraftAuthorizationError($draft);
+        }
+
+        $user = Craft::$app->getUsers()->getUserById($authorization['actorId']);
+
+        if (!$user || $user->getStatus() !== $user::STATUS_ACTIVE) {
+            return $this->_addDraftAuthorizationError($draft);
+        }
+
+        $changes = ManyToMany::$plugin->getService()->prepareRelationshipChanges($this, $draft, $ids, $user);
+
+        if ($changes === null) {
+            return false;
+        }
+
+        ManyToMany::$plugin->getService()->registerDraftApplication($this, $draft, $changes);
 
         return true;
     }
@@ -578,6 +694,89 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     // Private Methods
     // =========================================================================
+
+    private function _addDraftAuthorizationError(ElementInterface $element): false
+    {
+        $element->addError($this->handle, Craft::t('manytomany', 'The draft relationship changes must be saved again by an authorized user.'));
+
+        return false;
+    }
+
+    private function _authorizationForIds(ElementInterface $element, array $ids): ?string
+    {
+        $authorization = $this->_storedAuthorizations[$element] ?? null;
+
+        if (!is_array($authorization) || $authorization['ids'] !== $ids) {
+            return null;
+        }
+
+        return $authorization['token'];
+    }
+
+    private function _createDraftAuthorization(ElementInterface $draft, array $ids, int $actorId): string
+    {
+        $claims = $this->_draftAuthorizationClaims($draft, $ids, $actorId);
+        $token = base64_encode(Craft::$app->getSecurity()->hashData(Json::encode($claims)));
+
+        $this->_storedAuthorizations ??= new WeakMap();
+        $this->_storedAuthorizations[$draft] = $claims + ['token' => $token];
+
+        return $token;
+    }
+
+    private function _validateDraftAuthorization(ElementInterface $draft, array $ids, string $token): ?array
+    {
+        try {
+            $signedData = base64_decode($token, true);
+
+            if ($signedData === false) {
+                return null;
+            }
+
+            $data = Craft::$app->getSecurity()->validateData($signedData);
+
+            if ($data === false) {
+                return null;
+            }
+
+            $claims = Json::decode($data);
+
+            if (!is_array($claims) || !is_int($claims['actorId'] ?? null)) {
+                return null;
+            }
+
+            $expectedClaims = $this->_draftAuthorizationClaims($draft, $ids, $claims['actorId']);
+
+            if ($claims !== $expectedClaims) {
+                return null;
+            }
+
+            return $claims + ['token' => $token];
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function _draftAuthorizationClaims(ElementInterface $draft, array $ids, int $actorId): array
+    {
+        return [
+            'purpose' => self::AUTHORIZATION_PURPOSE,
+            'version' => self::AUTHORIZATION_VERSION,
+            'actorId' => $actorId,
+            'draftUid' => $draft->uid,
+            'siteId' => $draft->siteId,
+            'field' => $this->getAuthorizationIdentity(),
+            'config' => hash('sha256', Json::encode([
+                'sourceElementType' => $this->sourceElementType,
+                'sourceType' => $this->source['type'] ?? null,
+                'sourceValue' => $this->source['value'] ?? null,
+                'singleField' => $this->singleField,
+                'entryTypes' => array_values($this->entryTypes),
+                'maxRelations' => $this->maxRelations,
+            ])),
+            'ids' => $ids,
+        ];
+    }
 
     private function _selectionIsValid(ElementInterface $element, array $selection): bool
     {

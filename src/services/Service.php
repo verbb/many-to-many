@@ -9,18 +9,25 @@ use craft\base\ElementInterface;
 use craft\elements\ElementCollection;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\Entry;
+use craft\elements\User;
 use craft\errors\InvalidElementException;
 use craft\fields\BaseRelationField;
 use craft\helpers\ElementHelper;
 
 class Service extends Component
 {
+    // Properties
+    // =========================================================================
+
+    private array $_draftApplications = [];
+
+
     // Public Methods
     // =========================================================================
 
-    public function prepareRelationshipChanges(ManyToManyField $fieldType, ElementInterface $element, array $desiredIds): ?array
+    public function prepareRelationshipChanges(ManyToManyField $fieldType, ElementInterface $element, array $desiredIds, ?User $user = null): ?array
     {
-        if (ElementHelper::isDraftOrRevision($element)) {
+        if ($element->getIsRevision()) {
             return [];
         }
 
@@ -42,6 +49,7 @@ class Service extends Component
             return null;
         }
 
+        $relationshipOwner = $element->getIsDraft() ? $element->getCanonical() : $element;
         $desiredElements = $this->_indexElements($adapter->findElements($desiredIds, $element, $sourceValue));
 
         if (count($desiredElements) !== count($desiredIds)) {
@@ -50,7 +58,7 @@ class Service extends Component
         }
 
         $currentElements = $this->_indexElements($adapter->findRelatedElements(
-            $element,
+            $relationshipOwner,
             $sourceValue,
             $associatedField->id,
             true,
@@ -75,7 +83,7 @@ class Service extends Component
             return [];
         }
 
-        $user = Craft::$app->getUser()->getIdentity();
+        $user ??= Craft::$app->getUser()->getIdentity();
         $elements = Craft::$app->getElements();
 
         if (!$user) {
@@ -117,6 +125,18 @@ class Service extends Component
         }
 
         return $changes;
+    }
+
+    public function registerDraftApplication(ManyToManyField $fieldType, ElementInterface $draft, array $changes): void
+    {
+        $this->_draftApplications[$this->_draftApplicationKey($fieldType, $draft)] = $changes;
+    }
+
+    public function getDraftApplicationChanges(ManyToManyField $fieldType, ElementInterface $element): ?array
+    {
+        $key = $this->_draftApplicationKey($fieldType, $element);
+
+        return $this->_draftApplications[$key] ?? null;
     }
 
     public function saveRelationship(ElementInterface $element, array $changes): void
@@ -178,5 +198,15 @@ class Service extends Component
         }
 
         return $indexed;
+    }
+
+    private function _draftApplicationKey(ManyToManyField $fieldType, ElementInterface $element): string
+    {
+        $draft = $element->duplicateOf?->getIsDraft() ? $element->duplicateOf : $element;
+
+        return implode(':', [
+            $draft->uid ?? $draft->id ?? '',
+            $fieldType->getAuthorizationIdentity(),
+        ]);
     }
 }
