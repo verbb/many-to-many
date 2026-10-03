@@ -70,20 +70,31 @@ class Service extends Component
 
         $toAdd = array_diff_key($desiredElements, $currentElements);
         $toDelete = array_diff_key($currentElements, $desiredElements);
+
+        if (empty($toAdd) && empty($toDelete)) {
+            return [];
+        }
+
+        $user = Craft::$app->getUser()->getIdentity();
+        $elements = Craft::$app->getElements();
+
+        if (!$user) {
+            $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected elements.'));
+            return null;
+        }
+
+        // Relations hidden from this editor were not present in the field submission and must remain unchanged.
+        $toDelete = array_filter(
+            $toDelete,
+            fn(ElementInterface $sourceElement) => $elements->canView($sourceElement, $user),
+        );
         $modifiedElements = $toAdd + $toDelete;
 
         if (empty($modifiedElements)) {
             return [];
         }
 
-        $user = Craft::$app->getUser()->getIdentity();
-        $elements = Craft::$app->getElements();
         $changes = [];
-
-        if (!$user) {
-            $element->addError($fieldType->handle, Craft::t('manytomany', 'You are not authorized to update the selected elements.'));
-            return null;
-        }
 
         foreach ($modifiedElements as $sourceId => $sourceElement) {
             $field = $sourceElement->getFieldLayout()?->getFieldByUid($associatedField->uid);

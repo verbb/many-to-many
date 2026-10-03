@@ -166,18 +166,32 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         $sourceIds = $this->_normalizeSourceIds(is_array($value) ? ($value['add'] ?? []) : [], $sourceIdsValid);
         $sourceValue = $this->source['value'] ?? '';
         $adapter = $this->getSourceAdapter();
-        $elements = $adapter && $adapter->sourceExists($sourceValue)
+        $sourceExists = $adapter !== null && $adapter->sourceExists($sourceValue);
+        $resolvedElements = $sourceExists
             ? $adapter->findElements($sourceIds, $element, $sourceValue)
             : [];
-        $resolvedIds = array_map(fn(ElementInterface $resolvedElement) => $resolvedElement->id, $elements);
+        $elements = $this->_viewableElements($resolvedElements);
+        $selectionIsValid = $valid &&
+            $sourceIdsValid &&
+            count($sourceIds) === count($resolvedElements) &&
+            count($resolvedElements) === count($elements);
+
+        $selectionElements = [];
+
+        if ($selectionIsValid && $sourceExists) {
+            foreach (array_merge($elements, $this->_hiddenExistingElements($element, $adapter, $sourceValue)) as $selectedElement) {
+                $selectionElements[$selectedElement->id] = $selectedElement;
+            }
+        }
 
         $this->_submittedSelections ??= new WeakMap();
         $this->_submittedSelections[$element] = [
-            'ids' => $resolvedIds,
-            'valid' => $valid && $sourceIdsValid && count($sourceIds) === count($resolvedIds),
+            'ids' => array_keys($selectionElements),
+            'valid' => $selectionIsValid,
         ];
 
-        return $elements;
+        // Hidden existing relations remain server-side for serialization, then presentation filters them again.
+        return array_values($selectionElements);
     }
 
     public function serializeValue(mixed $value, ?ElementInterface $element): mixed
@@ -411,11 +425,7 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
 
     public function getPreviewHtml($value, ElementInterface $element): string
     {
-        if ($value instanceof ElementCollection) {
-            $value = $value->all();
-        }
-
-        return Cp::elementPreviewHtml($value);
+        return Cp::elementPreviewHtml($this->_viewableElements($value));
     }
 
     public function getEagerLoadingMap(array $sourceElements): array|null|false
@@ -550,6 +560,8 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
             $value = $adapter->findRelatedElements($element, $sourceValue, $singleFieldModel->id, true);
         }
 
+        $value = $this->_viewableElements($value);
+
         return $view->renderTemplate('manytomany/field/input', [
             'name' => $this->handle,
             'value' => $value,
@@ -582,6 +594,54 @@ class ManyToManyField extends Field implements EagerLoadingFieldInterface, Previ
         }
 
         return true;
+    }
+
+    private function _viewableElements(mixed $value): array
+    {
+        if ($value instanceof ElementCollection) {
+            $value = $value->all();
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $user = Craft::$app->getUser()->getIdentity();
+
+        if (!$user) {
+            return [];
+        }
+
+        $elements = Craft::$app->getElements();
+
+        return array_values(array_filter(
+            $value,
+            fn(mixed $element) => $element instanceof ElementInterface && $elements->canView($element, $user),
+        ));
+    }
+
+    private function _hiddenExistingElements(ElementInterface $element, RelationSourceInterface $adapter, string $sourceValue): array
+    {
+        if ($element->getIsDraft() || $element->getIsRevision()) {
+            $value = $element->getFieldValue($this->handle);
+            $value = $value instanceof ElementCollection ? $value->all() : $value;
+            $existingElements = is_array($value) ? $value : [];
+        } else {
+            $fieldId = $this->singleField ? Craft::$app->getFields()->getFieldByUid($this->singleField)?->id : null;
+            $existingElements = $fieldId
+                ? $adapter->findRelatedElements($element, $sourceValue, $fieldId, true)
+                : [];
+        }
+
+        $viewableIds = array_flip(array_map(
+            fn(ElementInterface $existingElement) => $existingElement->id,
+            $this->_viewableElements($existingElements),
+        ));
+
+        return array_values(array_filter(
+            $existingElements,
+            fn(mixed $existingElement) => $existingElement instanceof ElementInterface && !isset($viewableIds[$existingElement->id]),
+        ));
     }
 
     private function _normalizeSourceIds(mixed $values, ?bool &$valid = null): array

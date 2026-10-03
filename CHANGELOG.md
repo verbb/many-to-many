@@ -13,6 +13,7 @@
 - Corrected product copy to describe entry relationships accurately.
 
 ### Fixed
+- Fixed a medium-severity information disclosure vulnerability.
 - Fixed a medium-severity improper authorization vulnerability.
 - Fixed `:empty:` and `:notempty:` field queries returning incorrect results for non-live relations.
 - Fixed Many-to-Many selections being discarded after validation errors or when reopening drafts.
