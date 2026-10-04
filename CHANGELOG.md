@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 4.0.8 - 2026-10-05
 
 ### Added
 - Added maximum-relations and view-mode settings for Many to Many fields.
