@@ -2,7 +2,7 @@
     "name": "verbb/many-to-many",
     "description": "A Craft CMS field for managing element relationships from either side.",
     "type": "craft-plugin",
-    "version": "4.0.8",
+    "version": "4.0.9",
     "keywords": [
         "craft",
         "cms",
