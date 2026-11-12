@@ -7,7 +7,7 @@ Configure a paired Craft relation field and Many to Many field. When an author c
 - Add or remove relationships from either participating element.
 - Connect entries, categories, users and assets.
 - Keep the paired Craft relation field in sync when the reverse field changes.
-- Use Craft’s familiar element-selection controls.
+- Use Craft's familiar element-selection controls.
 - Access related elements directly in Twig or with `relatedTo()` queries.
 - Eager-load relationships and query them through GraphQL.
 - Restrict linked content to a section, category group, user group or asset volume.

@@ -10,22 +10,26 @@ Configure a paired Craft relation field and Many to Many field. When an author c
 - Add or remove relationships from either participating element.
 - Connect entries, categories, users and assets.
 - Keep the paired Craft relation field in sync when the reverse field changes.
-- Use Craft’s familiar element-selection controls.
+- Use Craft's familiar element-selection controls.
 - Access related elements directly in Twig or with `relatedTo()` queries.
 - Eager-load relationships and query them through GraphQL.
 - Restrict linked content to a section, category group, user group or asset volume.
 
 ## Documentation
+
 Visit the [Many to Many Plugin page](https://verbb.io/craft-plugins/many-to-many) for all documentation, guides, pricing and developer resources.
 
 ## Credit & Thanks
+
 Originally created by [Oberon](https://www.oberon.nl) and [page.works](https://www.page.works).
 
 ## Support
-Get in touch with us via the [Many to Many Support page](https://verbb.io/craft-plugins/many-to-many/support) or by [creating a Github issue](https://github.com/verbb/many-to-many/issues)
+
+Get in touch with us via the [Many to Many Support page](https://verbb.io/craft-plugins/many-to-many/support) or by [creating a GitHub issue](https://github.com/verbb/many-to-many/issues).
 
 ## Sponsor
-Many to Many is licensed under the MIT license, meaning it will always be free and open source - we love free stuff! If you'd like to show your support to the plugin regardless, [Sponsor](https://github.com/sponsors/verbb) development.
+
+Many to Many is licensed under the MIT license, so it will always be free and open source. If you'd like to support it anyway, you can [sponsor its development](https://github.com/sponsors/verbb).
 
 <h2></h2>
 
