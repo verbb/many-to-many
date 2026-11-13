@@ -2,7 +2,7 @@
 You can install Many to Many via the plugin store, or through Composer.
 
 ## Craft Plugin Store
-To install **Many to Many**, navigate to the _Plugin Store_ section of your Craft control panel, search for `Many to Many`, and click the _Try_ button.
+To install **Many to Many**, navigate to the _Plugin Store_ section of your Craft control panel, search for `Many to Many`, and click the _Install_ button.
 
 ## Composer
 You can also add the package to your project using Composer and the command line.
